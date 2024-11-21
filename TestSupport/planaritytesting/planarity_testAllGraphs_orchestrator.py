@@ -159,7 +159,7 @@ def _validate_and_normalize_planarity_testAllGraphs_workload_args(  # pylint: di
 
     input_dir = input_dir.resolve()
     try:
-        candidate_order_from_path = (int)(input_dir.parts[-1])
+        candidate_order_from_path = (int)(input_dir.parts[-1].split("-")[0])
     except ValueError:
         pass
     except IndexError as e:

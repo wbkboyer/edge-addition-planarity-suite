@@ -29,7 +29,7 @@ if __name__ == "__main__":
         "--duplicationfactor",
         type=int,
         required=False,
-        default=10,
+        default=92,
         help="How many times do you wish to duplicate every graph in each "
         "infile.",
         metavar="D",
@@ -55,7 +55,7 @@ if __name__ == "__main__":
             if input_file_path.suffix == ".g6":
                 output_file_path = Path.joinpath(
                     output_dir,
-                    f"{input_file_path.stem}.dup-{duplication_factor}-times.g6",
+                    f"{input_file_path.name}",
                 )
                 with open(input_file_path, "r", encoding="utf-8") as infile:
                     for line in infile:
