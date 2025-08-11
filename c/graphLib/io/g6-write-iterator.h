@@ -41,6 +41,7 @@ extern "C"
 
     int getNumGraphsWritten(G6WriteIteratorP, int *);
     int getOrderOfGraphToWrite(G6WriteIteratorP, int *);
+    int getGraphBuff(G6WriteIteratorP, char **);
     int getPointerToGraphToWrite(G6WriteIteratorP, graphP *);
 
     int beginG6WriteIterationToG6String(G6WriteIteratorP);

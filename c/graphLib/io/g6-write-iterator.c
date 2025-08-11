@@ -12,18 +12,16 @@ See the LICENSE.TXT file for licensing information.
 
 int allocateG6WriteIterator(G6WriteIteratorP *ppG6WriteIterator, graphP pGraph)
 {
-    int exitCode = OK;
-
     if (ppG6WriteIterator != NULL && (*ppG6WriteIterator) != NULL)
     {
-        ErrorMessage("G6WriteIterator is not NULL and therefore can't be allocated.\n");
+        ErrorMessage("G6WriteIterator is not NULL and therefore can't be "
+                     "allocated.\n");
         return NOTOK;
     }
 
     // numGraphsWritten, graphOrder, numCharsForGraphOrder,
     // numCharsForGraphEncoding, and currGraphBuffSize all set to 0
     (*ppG6WriteIterator) = (G6WriteIteratorP)calloc(1, sizeof(G6WriteIterator));
-
     if ((*ppG6WriteIterator) == NULL)
     {
         ErrorMessage("Unable to allocate memory for G6WriteIterator.\n");
@@ -34,68 +32,67 @@ int allocateG6WriteIterator(G6WriteIteratorP *ppG6WriteIterator, graphP pGraph)
     (*ppG6WriteIterator)->currGraphBuff = NULL;
     (*ppG6WriteIterator)->columnOffsets = NULL;
 
-    if (pGraph == NULL || gp_getN(pGraph) <= 0)
+    if (pGraph == NULL || gp_GetN(pGraph) <= 0)
     {
-        ErrorMessage("[ERROR] Must allocate and initialize graph with an order greater than 0 to use the G6WriteIterator.\n");
-
-        exitCode = freeG6WriteIterator(ppG6WriteIterator);
-
-        if (exitCode != OK)
+        ErrorMessage("[ERROR] Graph to write must be allocated and initialized "
+                     "with an order greater than 0 to use the G6WriteIterator."
+                     "\n");
+        if (freeG6WriteIterator(ppG6WriteIterator) != OK)
             ErrorMessage("Unable to free the G6WriteIterator.\n");
+        return NOTOK;
     }
     else
         (*ppG6WriteIterator)->currGraph = pGraph;
 
-    return exitCode;
+    return OK;
 }
 
 bool _isG6WriteIteratorAllocated(G6WriteIteratorP pG6WriteIterator)
 {
-    bool G6WriteIteratorIsAllocated = true;
-
     if (pG6WriteIterator == NULL)
     {
         ErrorMessage("G6WriteIterator is NULL.\n");
-        G6WriteIteratorIsAllocated = false;
+        return false;
     }
     else
     {
         if (sf_ValidateStrOrFile(pG6WriteIterator->g6Output) != OK)
         {
             ErrorMessage("G6WriteIterator's g6Output is not valid.\n");
-            G6WriteIteratorIsAllocated = false;
+            return false;
         }
         if (pG6WriteIterator->currGraphBuff == NULL)
         {
             ErrorMessage("G6WriteIterator's currGraphBuff is NULL.\n");
-            G6WriteIteratorIsAllocated = false;
+            return false;
         }
         if (pG6WriteIterator->columnOffsets == NULL)
         {
             ErrorMessage("G6WriteIterator's columnOffsets is NULL.\n");
-            G6WriteIteratorIsAllocated = false;
+            return false;
         }
         if (pG6WriteIterator->currGraph == NULL)
         {
             ErrorMessage("G6WriteIterator's currGraph is NULL.\n");
-            G6WriteIteratorIsAllocated = false;
+            return false;
         }
-        if (gp_getN(pG6WriteIterator->currGraph) == 0)
+        if (gp_GetN(pG6WriteIterator->currGraph) == 0)
         {
             ErrorMessage("G6WriteIterator's currGraph does not contain a valid "
                          "graph.\n");
-            G6WriteIteratorIsAllocated = false;
+            return false;
         }
     }
 
-    return G6WriteIteratorIsAllocated;
+    return true;
 }
 
 int getNumGraphsWritten(G6WriteIteratorP pG6WriteIterator, int *pNumGraphsRead)
 {
-    if (pG6WriteIterator == NULL)
+    if (!_isG6WriteIteratorAllocated(pG6WriteIterator))
     {
-        ErrorMessage("G6WriteIterator is not allocated.\n");
+        ErrorMessage("G6WriteIterator is not allocated, so unable to get "
+                     "numGraphsWritten.\n");
         return NOTOK;
     }
 
@@ -104,11 +101,14 @@ int getNumGraphsWritten(G6WriteIteratorP pG6WriteIterator, int *pNumGraphsRead)
     return OK;
 }
 
+// FIXME: This accessor's name doesn't exactly match the name of the attribute
+// from the G6WriteIterator struct, i.e. graphOrder
 int getOrderOfGraphToWrite(G6WriteIteratorP pG6WriteIterator, int *pGraphOrder)
 {
-    if (pG6WriteIterator == NULL)
+    if (!_isG6WriteIteratorAllocated(pG6WriteIterator))
     {
-        ErrorMessage("G6WriteIterator is not allocated.\n");
+        ErrorMessage("G6WriteIterator is not allocated, so unable to get graph "
+                     "order.\n");
         return NOTOK;
     }
 
@@ -117,28 +117,34 @@ int getOrderOfGraphToWrite(G6WriteIteratorP pG6WriteIterator, int *pGraphOrder)
     return OK;
 }
 
-int getPointerToGraphToWrite(G6WriteIteratorP pG6WriteIterator, graphP *ppGraph)
-{
-    if (pG6WriteIterator == NULL)
-    {
-        ErrorMessage("[ERROR] G6WriteIterator is not allocated.\n");
-        return NOTOK;
-    }
-
-    (*ppGraph) = pG6WriteIterator->currGraph;
-
-    return OK;
-}
-
+// FIXME: This accessor's name doesn't exactly match the name of the attribute
+// from the G6WriteIterator struct, i.e. currGraphBuff
 int getGraphBuff(G6WriteIteratorP pG6WriteIterator, char **ppCurrGraphBuff)
 {
-    if (pG6WriteIterator == NULL)
+    if (!_isG6WriteIteratorAllocated(pG6WriteIterator))
     {
-        ErrorMessage("G6WriteIterator is not allocated.\n");
+        ErrorMessage("G6WriteIterator is not allocated, so unable to get "
+                     "currGraphBuff.\n");
         return NOTOK;
     }
 
     (*ppCurrGraphBuff) = pG6WriteIterator->currGraphBuff;
+
+    return OK;
+}
+
+// FIXME: This accessor's name doesn't exactly match the name of the attribute
+// from the G6WriteIterator struct, i.e. currGraph
+int getPointerToGraphToWrite(G6WriteIteratorP pG6WriteIterator, graphP *ppGraph)
+{
+    if (!_isG6WriteIteratorAllocated(pG6WriteIterator))
+    {
+        ErrorMessage("[ERROR] G6WriteIterator is not allocated, so unable to "
+                     "get pointer to graph to write.\n");
+        return NOTOK;
+    }
+
+    (*ppGraph) = pG6WriteIterator->currGraph;
 
     return OK;
 }
@@ -159,8 +165,20 @@ int beginG6WriteIterationToG6FilePath(G6WriteIteratorP pG6WriteIterator, char *o
 
 int beginG6WriteIterationToG6StrOrFile(G6WriteIteratorP pG6WriteIterator, strOrFileP outputContainer)
 {
-    int exitCode = OK;
+    if (pG6WriteIterator == NULL)
+    {
+        ErrorMessage("G6WriteIterator is not allocated.\n");
+        return NOTOK;
+    }
 
+    // TODO: Should I actually error out if we've already written to the given
+    // strOrFile container, i.e. the sb_GetSize(theStrOrFile->theStr) > 0?
+    // This is because in _beginG6WriteIteration() I always write the header
+    // >>graph6<<... Two other alternatives are that I could *NOT* write the
+    // header, or I could only write the header if the strOrFile container is
+    // empty (N.B. that using pattern of sf_getc(), checking that char isn't
+    // EOF, followed by sf_ungetc() will *not* work currently due to sf_ungetc()
+    // erroring out if you try to call it on an output container).
     if (sf_ValidateStrOrFile(outputContainer) != OK)
     {
         ErrorMessage("Invalid strOrFile output container provided.\n");
@@ -169,26 +187,21 @@ int beginG6WriteIterationToG6StrOrFile(G6WriteIteratorP pG6WriteIterator, strOrF
 
     pG6WriteIterator->g6Output = outputContainer;
 
-    exitCode = _beginG6WriteIteration(pG6WriteIterator);
-
-    if (exitCode != OK)
-        ErrorMessage("Unable to begin .g6 write iteration to given strOrFile output container.\n");
-
-    return exitCode;
+    return _beginG6WriteIteration(pG6WriteIterator);
 }
 
 int _beginG6WriteIteration(G6WriteIteratorP pG6WriteIterator)
 {
-    int exitCode = OK;
-
     char const *g6Header = ">>graph6<<";
+
+    // TODO: See comment in beginG6WriteIterationToG6StrOrFile()
     if (sf_fputs(g6Header, pG6WriteIterator->g6Output) < 0)
     {
         ErrorMessage("Unable to fputs header to g6Output.\n");
         return NOTOK;
     }
 
-    pG6WriteIterator->graphOrder = gp_getN(pG6WriteIterator->currGraph);
+    pG6WriteIterator->graphOrder = gp_GetN(pG6WriteIterator->currGraph);
 
     pG6WriteIterator->columnOffsets = (int *)calloc(pG6WriteIterator->graphOrder + 1, sizeof(int));
 
@@ -209,17 +222,18 @@ int _beginG6WriteIteration(G6WriteIteratorP pG6WriteIterator)
     if (pG6WriteIterator->currGraphBuff == NULL)
     {
         ErrorMessage("Unable to allocate memory for currGraphBuff.\n");
-        exitCode = NOTOK;
+        return NOTOK;
     }
 
-    return exitCode;
+    return OK;
 }
 
 void _precomputeColumnOffsets(int *columnOffsets, int graphOrder)
 {
     if (columnOffsets == NULL)
     {
-        ErrorMessage("Must allocate columnOffsets memory before precomputation.\n");
+        ErrorMessage("Must allocate columnOffsets memory before "
+                     "precomputation.\n");
         return;
     }
 
@@ -231,20 +245,19 @@ void _precomputeColumnOffsets(int *columnOffsets, int graphOrder)
 
 int writeGraphUsingG6WriteIterator(G6WriteIteratorP pG6WriteIterator)
 {
-    int exitCode = OK;
-
-    exitCode = _encodeAdjMatAsG6(pG6WriteIterator);
-    if (exitCode != OK)
+    if (_encodeAdjMatAsG6(pG6WriteIterator) != OK)
     {
         ErrorMessage("Error converting adjacency matrix to g6 format.\n");
-        return exitCode;
+        return NOTOK;
     }
 
-    exitCode = _printEncodedGraph(pG6WriteIterator);
-    if (exitCode != OK)
+    if (_printEncodedGraph(pG6WriteIterator) != OK)
+    {
         ErrorMessage("Unable to output g6 encoded graph to string-or-file container.\n");
+        return NOTOK;
+    }
 
-    return exitCode;
+    return OK;
 }
 
 int _encodeAdjMatAsG6(G6WriteIteratorP pG6WriteIterator)
@@ -376,6 +389,8 @@ int _getNextEdge(graphP theGraph, int *e, int *u, int *v)
 
 int _getNextInUseEdge(graphP theGraph, int *e, int *u, int *v)
 {
+    // FIXME: the exitCode never changes from OK, so this is not needed. Should
+    // there be additional checks of the macro expansions, or just remove?
     int exitCode = OK;
     int EsizeOccupied = gp_EdgeInUseIndexBound(theGraph);
 
@@ -403,15 +418,14 @@ int _getNextInUseEdge(graphP theGraph, int *e, int *u, int *v)
 
 int _printEncodedGraph(G6WriteIteratorP pG6WriteIterator)
 {
-    int exitCode = OK;
-
-    if (pG6WriteIterator->g6Output == NULL)
+    if (!_isG6WriteIteratorAllocated(pG6WriteIterator))
     {
-        ErrorMessage("Unable to print to NULL string-or-file container.\n");
+        ErrorMessage("Unable to print encoded graph using invalid "
+                     "G6WriteIterator.\n");
         return NOTOK;
     }
 
-    if (pG6WriteIterator->currGraphBuff == NULL || strlen(pG6WriteIterator->currGraphBuff) == 0)
+    if (strlen(pG6WriteIterator->currGraphBuff) == 0)
     {
         ErrorMessage("Unable to print; g6 encoding is empty.\n");
         return NOTOK;
@@ -420,20 +434,24 @@ int _printEncodedGraph(G6WriteIteratorP pG6WriteIterator)
     if (sf_fputs(pG6WriteIterator->currGraphBuff, pG6WriteIterator->g6Output) < 0)
     {
         ErrorMessage("Failed to output all characters of g6 encoding.\n");
-        exitCode = NOTOK;
+        return NOTOK;
     }
 
     if (sf_fputs("\n", pG6WriteIterator->g6Output) < 0)
     {
         ErrorMessage("Failed to put line terminator after g6 encoding.\n");
-        exitCode = NOTOK;
+        return NOTOK;
     }
 
-    return exitCode;
+    return OK;
 }
 
 int endG6WriteIteration(G6WriteIteratorP pG6WriteIterator)
 {
+    // FIXME: the exitCode never changes from OK, so this is not needed. Should
+    // there be additional checks, such as adding a return value for sf_Free()?
+    // As long as you pass the same address to free() as you did for malloc(),
+    // there's no real way to check that free() succeeded.
     int exitCode = OK;
 
     if (pG6WriteIterator != NULL)
@@ -459,6 +477,7 @@ int endG6WriteIteration(G6WriteIteratorP pG6WriteIterator)
 
 int freeG6WriteIterator(G6WriteIteratorP *ppG6WriteIterator)
 {
+    // FIXME: See comment in endG6WriteIteration() about exitCode.
     int exitCode = OK;
 
     if (ppG6WriteIterator != NULL && (*ppG6WriteIterator) != NULL)

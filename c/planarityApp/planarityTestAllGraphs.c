@@ -143,7 +143,7 @@ int testAllGraphs(graphP theGraph, char command, char *infileName, testAllStatsP
         return Result;
     }
 
-    int graphOrder = gp_getN(theGraph);
+    int graphOrder = gp_GetN(theGraph);
     // We have to set the maximum arc capacity (i.e. (N * (N - 1))) because some of the test files
     // can contain complete graphs, and the graph drawing, K_{3, 3} search, and K_4 search extensions
     // don't support expanding the arc capacity after being attached.

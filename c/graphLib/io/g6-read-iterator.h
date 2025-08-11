@@ -41,6 +41,8 @@ extern "C"
 
     int getNumGraphsRead(G6ReadIteratorP, int *);
     int getOrderOfGraphToRead(G6ReadIteratorP, int *);
+    // FIXME: Should there be an accessor for the currGraphBuff, as there is one
+    // for the G6WriteIterator?
     int getPointerToGraphReadIn(G6ReadIteratorP, graphP *);
 
     int beginG6ReadIterationFromG6String(G6ReadIteratorP, char *);

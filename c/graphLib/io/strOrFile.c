@@ -104,6 +104,14 @@ strOrFileP sf_New(char const *theStr, char const *fileName, char const *ioMode)
                     containerType = OUTPUT_CONTAINER;
             }
 
+            // FIXME: What happens if the strOrFile corresponds to an input
+            // file, and yet the pFile is empty? Do we want to catch this early,
+            // or wait for the user to try to read from the file (as we are
+            // currently doing)?
+            // FIXME: What happens if the strOrFile corresponds to an output
+            // file, and yet the pFile is nonempty? Appending to file is valid
+            // for other utilities, but should there be some sort of flag to
+            // signal this?
             theStrOrFile->pFile = pFile;
         }
         else
