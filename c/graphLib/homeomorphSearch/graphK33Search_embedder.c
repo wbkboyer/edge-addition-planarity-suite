@@ -16,6 +16,8 @@ extern int K33SEARCH_ID;
 
 #include "../graph.h"
 
+#ifdef INCLUDE_K33_EMBEDDER
+
 /* Imported functions */
 
 extern int _ClearVisitedFlagsInBicomp(graphP theGraph, int BicompRoot);
@@ -2325,3 +2327,5 @@ int _K33Search_ValidateVerticesInONodeSubtree(graphP theGraph, K33Search_EONodeP
 
     return OK;
 }
+
+#endif

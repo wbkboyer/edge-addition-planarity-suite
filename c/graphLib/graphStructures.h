@@ -25,6 +25,10 @@ extern "C"
 // OK signifies EMBEDDABLE (no unreducible obstructions) and NOTOK signifies an exception.
 #define NONEMBEDDABLE -1
 
+// Macro to help easily find injection points of code for the K_{3,3} embedder capability
+// Comment out to recompile without the K_{3,3} embedder capability
+#define INCLUDE_K33_EMBEDDER
+
 // The initial setting for the edge storage capacity expressed as a constant factor of N,
 // which is the number of vertices in the graph. By default, array E is allocated enough
 // space to contain 3N edges, which is 6N arcs (half edges), but this initial setting
@@ -35,17 +39,17 @@ extern "C"
     /********************************************************************
      Edge Record Definition
 
-     An edge is defined by a pair of edge records, or arcs, allocated in
-     array E of a graph.  An edge record represents the edge in the
-     adjacency list of each vertex to which the edge is incident.
+        An edge is defined by a pair of edge records, or arcs, allocated in
+        array E of a graph.  An edge record represents the edge in the
+        adjacency list of each vertex to which the edge is incident.
 
-     link[2]: the next and previous edge records (arcs) in the adjacency
-              list that contains this edge record.
+        link[2]: the next and previous edge records (arcs) in the adjacency
+                list that contains this edge record.
 
-     v: The vertex neighbor of the vertex whose adjacency list contains
+        v: The vertex neighbor of the vertex whose adjacency list contains
         this edge record (an index into array V).
 
-     flags: Bits 0-15 reserved for library; bits 16 and higher for apps
+        flags: Bits 0-15 reserved for library; bits 16 and higher for apps
             Bit 0: Visited
             Bit 1: DFS type has been set, versus not set
             Bit 2: DFS tree edge, versus cycle edge (co-tree edge, etc.)
@@ -54,6 +58,10 @@ extern "C"
             Bit 5: Arc is directed into the containing vertex only
             Bit 6: Arc is directed from the containing vertex only
      ********************************************************************/
+
+#ifdef INCLUDE_K33_EMBEDDER
+//          Bit 7: Arc is virtual (caller should ensure the twin arc is also set or cleared)
+#endif
 
     typedef struct
     {
@@ -163,25 +171,33 @@ extern "C"
         }                                                                                      \
     }
 
+#ifdef INCLUDE_K33_EMBEDDER
+#define EDGEFLAG_VIRTUAL_MASK 128
+
+#define gp_GetEdgeVirtual(theGraph, e) (theGraph->E[e].flags & EDGEFLAG_VIRTUAL_MASK)
+#define gp_ClearEdgeVirtual(theGraph, e) (theGraph->E[e].flags &= ~EDGEFLAG_VIRTUAL_MASK)
+#define gp_SetEdgeVirtual(theGraph, e) (theGraph->E[e].flags |= EDGEFLAG_VIRTUAL_MASK)
+#endif
+
 #define gp_CopyEdgeRec(dstGraph, edst, srcGraph, esrc) (dstGraph->E[edst] = srcGraph->E[esrc])
 
     /********************************************************************
      Vertex Record Definition
 
-     This record definition provides the data members needed for the
-     core structural information for both vertices and virtual vertices.
-     Vertices are also equipped with additional information provided by
-     the vertexInfo structure.
+        This record definition provides the data members needed for the
+        core structural information for both vertices and virtual vertices.
+        Vertices are also equipped with additional information provided by
+        the vertexInfo structure.
 
-     The vertices of a graph are stored in the first N locations of array V.
-     Virtual vertices are secondary vertices used to help represent the
-     main vertices in substructural components of a graph (e.g. biconnected
-     components).
+        The vertices of a graph are stored in the first N locations of array V.
+        Virtual vertices are secondary vertices used to help represent the
+        main vertices in substructural components of a graph (e.g. biconnected
+        components).
 
-     link[2]: the first and last edge records (arcs) in the adjacency list
-              of the vertex.
+        link[2]: the first and last edge records (arcs) in the adjacency list
+                of the vertex.
 
-     index: In vertices, stores either the depth first index of a vertex or
+        index: In vertices, stores either the depth first index of a vertex or
             the original array index of the vertex if the vertices of the
             graph are sorted by DFI.
             In virtual vertices, the index may be used to indicate the vertex
@@ -191,13 +207,18 @@ extern "C"
             virtual vertices of a vertex at positions corresponding to the
             DFS children of the vertex).
 
-     flags: Bits 0-15 reserved for library; bits 16 and higher for apps
+        flags: Bits 0-15 reserved for library; bits 16 and higher for apps
             Bit 0: visited, for vertices and virtual vertices
                     Use in lieu of TYPE_VERTEX_VISITED in K4 algorithm
             Bit 1: Obstruction type VERTEX_TYPE_SET (versus not set, i.e. VERTEX_TYPE_UNKNOWN)
             Bit 2: Obstruction type qualifier RYW (set) versus RXW (clear)
             Bit 3: Obstruction type qualifier high (set) versus low (clear)
      ********************************************************************/
+
+#ifdef INCLUDE_K33_EMBEDDER
+//            Bit 4: Indicates whether a vertex has been made defunct, such as
+//                   due to being transferred to another graph.
+#endif
 
     typedef struct
     {
@@ -258,6 +279,10 @@ extern "C"
 #define gp_VirtualVertexInRange(theGraph, v) ((v) < theGraph->N + theGraph->NV)
 #endif
 
+#ifdef INCLUDE_K33_EMBEDDER
+#define gp_IsBicompRoot(theGraph, v) ((v) > theGraph->N)
+#endif
+
 #define gp_GetRootFromDFSChild(theGraph, c) ((c) + theGraph->N)
 #define gp_GetDFSChildFromRoot(theGraph, R) ((R) - theGraph->N)
 #define gp_GetPrimaryVertexFromRoot(theGraph, R) gp_GetVertexParent(theGraph, gp_GetDFSChildFromRoot(theGraph, R))
@@ -307,6 +332,14 @@ extern "C"
 #define gp_SetVertexObstructionType(theGraph, v, type) (theGraph->V[v].flags |= type)
 #define gp_ResetVertexObstructionType(theGraph, v, type) \
     (theGraph->V[v].flags = (theGraph->V[v].flags & ~VERTEX_OBSTRUCTIONTYPE_MASK) | type)
+
+#ifdef INCLUDE_K33_EMBEDDER
+#define VERTEX_DEFUNCT_MASK 16
+
+#define gp_GetVertexDefunct(theGraph, v) (theGraph->V[v].flags & VERTEX_DEFUNCT_MASK)
+#define gp_ClearVertexDefunct(theGraph, v) (theGraph->V[v].flags &= ~VERTEX_DEFUNCT_MASK)
+#define gp_SetVertexDefunct(theGraph, v) (theGraph->V[v].flags |= VERTEX_DEFUNCT_MASK)
+#endif
 
 #define gp_CopyVertexRec(dstGraph, vdst, srcGraph, vsrc) (dstGraph->V[vdst] = srcGraph->V[vsrc])
 

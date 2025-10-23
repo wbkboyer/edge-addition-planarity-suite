@@ -18,7 +18,8 @@ extern int _getImageVertices(graphP theGraph, int *degrees, int maxDegree,
                              int *imageVerts, int maxNumImageVerts);
 extern int _TestSubgraph(graphP theSubgraph, graphP theGraph);
 
-/* K33CERT: Imports for K_{3,3}-free embedding */
+#ifdef INCLUDE_K33_EMBEDDER
+// Imports for K_{3,3}-free embedding
 
 extern K33Search_EONodeP _K33Search_EONode_New(int theEOType, graphP theSubgraph, int theSubgraphOwner);
 extern void _K33Search_EONode_Free(K33Search_EONodeP *pEONode);
@@ -26,6 +27,7 @@ extern int _K33Search_TestForEOTreeChildren(K33Search_EONodeP EOTreeNode);
 
 extern int _K33Search_AssembleMainPlanarEmbedding(K33Search_EONodeP EOTreeRoot);
 extern int _K33Search_ValidateEmbeddingObstructionTree(graphP theGraph, K33Search_EONodeP EOTreeRoot, graphP origGraph);
+#endif
 
 /* Forward declarations of local functions */
 
@@ -167,9 +169,10 @@ void _K33Search_ClearStructures(K33SearchContext *context)
         // Before initialization, the pointers are stray, not NULL
         // Once NULL or allocated, free() or LCFree() can do the job
 
-        // K33CERT begin: No associatedEONode until _K33Search_CreateStructures() is called
+#ifdef INCLUDE_K33_EMBEDDER
+        // No associatedEONode until _K33Search_CreateStructures() is called
         context->associatedEONode = NULL;
-        // K33CERT end
+#endif
 
         context->E = NULL;
         context->VI = NULL;
@@ -182,9 +185,10 @@ void _K33Search_ClearStructures(K33SearchContext *context)
     }
     else
     {
-        // K33CERT begin: Free associatedEONode, if allocated, and NULL out the pointer
+#ifdef INCLUDE_K33_EMBEDDER
+        // Free associatedEONode, if allocated, and NULL out the pointer
         _K33Search_EONode_Free(&context->associatedEONode);
-        // K33CERT end
+#endif
 
         if (context->E != NULL)
         {
@@ -220,10 +224,14 @@ int _K33Search_CreateStructures(K33SearchContext *context)
     if (context->theGraph->N <= 0)
         return NOTOK;
 
-    // K33CERT begin
-    if ((context->associatedEONode = _K33Search_EONode_New(K33SEARCH_EOTYPE_ENODE, context->theGraph, FALSE)) == NULL ||
-        // K33CERT end
-        (context->E = (K33Search_EdgeRecP)malloc(Esize * sizeof(K33Search_EdgeRec))) == NULL ||
+#ifdef INCLUDE_K33_EMBEDDER
+    if ((context->associatedEONode = _K33Search_EONode_New(K33SEARCH_EOTYPE_ENODE, context->theGraph, FALSE)) == NULL)
+    {
+        return NOTOK;
+    }
+#endif
+
+    if ((context->E = (K33Search_EdgeRecP)malloc(Esize * sizeof(K33Search_EdgeRec))) == NULL ||
         (context->VI = (K33Search_VertexInfoP)malloc(VIsize * sizeof(K33Search_VertexInfo))) == NULL ||
         (context->separatedDFSChildLists = LCNew(VIsize)) == NULL ||
         (context->buckets = (int *)malloc(VIsize * sizeof(int))) == NULL ||
@@ -297,12 +305,12 @@ void _K33Search_ReinitializeGraph(graphP theGraph)
 
     if (context != NULL)
     {
-        // K33CERT begin
+#ifdef INCLUDE_K33_EMBEDDER
         // Get rid of an embedding obstruction tree if one was formed due to operations on this graph
         _K33Search_EONode_Free(&context->associatedEONode);
         if ((context->associatedEONode = _K33Search_EONode_New(K33SEARCH_EOTYPE_ENODE, context->theGraph, FALSE)) == NULL)
             ErrorMessage("_K33Search_ReinitializeGraph() failed to allocate an embedding obstruction tree root node.\n");
-        // K33CERT end
+#endif
 
         // Reinitialize the graph
         context->functions.fpReinitializeGraph(theGraph);
@@ -350,14 +358,14 @@ void *_K33Search_DupContext(void *pContext, void *theGraph)
         _K33Search_ClearStructures(newContext);
         if (((graphP)theGraph)->N > 0)
         {
-            // K33CERT begin
+#ifdef INCLUDE_K33_EMBEDDER
             if (_K33Search_TestForEOTreeChildren(context->associatedEONode) == TRUE)
             {
-                ErrorMessage("_K33Search_DupContext(): Duplicationg an embedding obstruction tree is unsupported.\n");
+                ErrorMessage("_K33Search_DupContext(): Duplicating an embedding obstruction tree is unsupported.\n");
                 _K33Search_FreeContext(newContext);
                 return NULL;
             }
-            // K33CERT end
+#endif
 
             if (_K33Search_CreateStructures(newContext) != OK)
             {
@@ -645,9 +653,9 @@ void _K33Search_InitEdgeRec(K33SearchContext *context, int e)
 {
     context->E[e].noStraddle = NIL;
     context->E[e].pathConnector = NIL;
-    // K33CERT begin
+#ifdef INCLUDE_K33_EMBEDDER
     context->E[e].EONode = NULL;
-    // K33CERT end
+#endif
 }
 
 /********************************************************************
@@ -706,10 +714,10 @@ int _K33Search_EmbedPostprocess(graphP theGraph, int v, int edgeEmbeddingResult)
     // search result has been obtained already.
     if (theGraph->embedFlags == EMBEDFLAGS_SEARCHFORK33)
     {
-        // K33CERT begin
         // If the result is K3,3-free, then we need to orient vertices and join bicomps in the main planar embedding
         if (edgeEmbeddingResult == OK)
         {
+#ifdef INCLUDE_K33_EMBEDDER
             // This is currently a constant conditional TRUE, and will be changed to
             // a variable conditional test once code is added to let the caller control
             // whether or not to perform K_{3,3}-free embedding.
@@ -727,6 +735,7 @@ int _K33Search_EmbedPostprocess(graphP theGraph, int v, int edgeEmbeddingResult)
             // When not creating $K_{3,3}-free embeddings, we revert to the code that empties
             // the graph for an empty $K_{3,3} homeomorph search result
             else
+#endif
             {
                 // When a graph does not contain a K3,3 homeomorph, the embedding
                 // is meaningless, so we empty it out. We preserve the embedFlags
@@ -738,7 +747,6 @@ int _K33Search_EmbedPostprocess(graphP theGraph, int v, int edgeEmbeddingResult)
                 theGraph->internalFlags &= savedZEROBASEDIO;
             }
         }
-        // K33CERT end
 
         return edgeEmbeddingResult;
     }
@@ -765,14 +773,14 @@ int _K33Search_CheckEmbeddingIntegrity(graphP theGraph, graphP origGraph)
 {
     if (theGraph->embedFlags == EMBEDFLAGS_SEARCHFORK33)
     {
-        // K33CERT begin
+#ifdef INCLUDE_K33_EMBEDDER
         // Given an embedding obstruction tree, we only return OK on the condition that the
         // validity tests are successful
         K33SearchContext *context = NULL;
         gp_FindExtension(theGraph, K33SEARCH_ID, (void *)&context);
 
         if (context != NULL && _K33Search_ValidateEmbeddingObstructionTree(theGraph, context->associatedEONode, origGraph) == OK)
-            // K33CERT end
+#endif
             return OK;
     }
 

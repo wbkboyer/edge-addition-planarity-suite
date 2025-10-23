@@ -14,40 +14,8 @@ extern "C"
 {
 #endif
 
-    // K33CERT begin: Marking edges as virtual
-
-    // This should get promoted to graphStructures.h (plus check if debug function versions needed).
-    // Also, for maximal cleanliness, clear virtualness of any edges in isolated K_{3,3} homeomorphs.
-    //
-    //     flags: Bits 0-15 reserved for library; bits 16 and higher for apps
-    //            ...
-    //            Bit 7: Arc is virtual (caller should ensure the twin arc is also set or cleared)
-
-#define EDGEFLAG_VIRTUAL_MASK 128
-
-#define gp_GetEdgeVirtual(theGraph, e) (theGraph->E[e].flags & EDGEFLAG_VIRTUAL_MASK)
-#define gp_ClearEdgeVirtual(theGraph, e) (theGraph->E[e].flags &= ~EDGEFLAG_VIRTUAL_MASK)
-#define gp_SetEdgeVirtual(theGraph, e) (theGraph->E[e].flags |= EDGEFLAG_VIRTUAL_MASK)
-
-    // These vertex macros and flag should also get promoted to graphStructures.h
-    // Also, for maximal cleanliness, clear defunct flag on vertices in isolated K_{3,3} homeomorphs.
-    //
-    //     flags: Bits 0-15 reserved for library; bits 16 and higher for apps
-    //            ...
-    //            Bit 4: Indicates whether a vertex has been made defunct, such as
-    //                   due to being transferred to another graph.
-
-#define VERTEX_DEFUNCT_MASK 16
-
-#define gp_GetVertexDefunct(theGraph, v) (theGraph->V[v].flags & VERTEX_DEFUNCT_MASK)
-#define gp_ClearVertexDefunct(theGraph, v) (theGraph->V[v].flags &= ~VERTEX_DEFUNCT_MASK)
-#define gp_SetVertexDefunct(theGraph, v) (theGraph->V[v].flags |= VERTEX_DEFUNCT_MASK)
-
-#define gp_IsBicompRoot(theGraph, v) ((v) > theGraph->N)
-
-// K33CERT end
-
-// K33CERT begin: Declarations for K3,3 embedding obsruction tree nodes
+#ifdef INCLUDE_K33_EMBEDDER
+// Declarations for K3,3 embedding obsruction tree nodes
 #define K33SEARCH_EOTYPE_ENODE 0
 #define K33SEARCH_EOTYPE_ONODE 1
     typedef struct
@@ -59,16 +27,16 @@ extern "C"
     } K33Search_EONode;
 
     typedef K33Search_EONode *K33Search_EONodeP;
-
-    // K33CERT end
+#endif
 
     // Additional equipment for each EdgeRec
     typedef struct
     {
         int noStraddle, pathConnector;
-        // K33CERT begin: Addition to enable edge rec to point to a K33_EONode instance
+#ifdef INCLUDE_K33_EMBEDDER
+        // Addition to enable edge rec to point to a K33_EONode instance
         K33Search_EONodeP EONode; // default NULL via memset 0 init
-        // K33CERT end
+#endif
     } K33Search_EdgeRec;
 
     typedef K33Search_EdgeRec *K33Search_EdgeRecP;
@@ -77,11 +45,12 @@ extern "C"
     typedef struct
     {
         int separatedDFSChildList, backArcList, mergeBlocker;
-        // K33CERT begin: Addition of a variable often and temporarily used to enable
-        //                internal subroutines to map between a graph's vertex indices
-        //                and the vertex indices of a subgraph being extracted from it
+#ifdef INCLUDE_K33_EMBEDDER
+        // Addition of a variable often and temporarily used to enable
+        // internal subroutines to map between a graph's vertex indices
+        // and the vertex indices of a subgraph being extracted from it
         int graphToSubgraphIndex, subgraphToGraphIndex;
-        // K33CERT end
+#endif
     } K33Search_VertexInfo;
 
     typedef K33Search_VertexInfo *K33Search_VertexInfoP;
@@ -94,9 +63,10 @@ extern "C"
         // The graph that this context augments
         graphP theGraph;
 
-        // K33CERT begin: Addition to enable edge rec to point to a K33_EONode instance
+#ifdef INCLUDE_K33_EMBEDDER
+        // Addition to enable edge rec to point to a K33_EONode instance
         K33Search_EONodeP associatedEONode;
-        // K33CERT end
+#endif
 
         // Parallel array for additional edge level equipment
         K33Search_EdgeRecP E;
