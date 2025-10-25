@@ -16,12 +16,18 @@ See the LICENSE.TXT file for licensing information.
 /********************************************************************
  sf_New()
 
- Accepts a FILE pointer XOR a string, which are owned by the container.
+ Accepts an input string (do not pass pointer to output string; if you wish to
+ create a strOrFile OUTPUT_CONTAINER that will be used to write to string,
+ create it using sf_New(NULL, NULL, WRITETEXT)) XOR the name of a file filename.
+
+ Note that when used as an input container, we're appending theStr to the
+ internal strBuf; the original pointer is not manipulated, hence the const
+ qualifiers.
 
  Returns the allocated string-or-file container, or NULL on error.
  ********************************************************************/
 
-strOrFileP sf_New(char const *theStr, char const *fileName, char const *ioMode)
+strOrFileP sf_New(char const *const theStr, char const *const fileName, char const *ioMode)
 {
     strOrFileP theStrOrFile;
     int containerType = 0;

@@ -25,13 +25,13 @@ extern "C"
 
     /* Functions that call the Graph Library */
     int SpecificGraph(
-        char command,
+        char const *const commandString,
         char const *infileName, char *outfileName, char *outfile2Name,
         char *inputStr, char **pOutputStr, char **pOutput2Str);
-    int RandomGraph(char command, int extraEdges, int numVertices, char *outfileName, char *outfile2Name);
-    int RandomGraphs(char command, int NumGraphs, int SizeOfGraphs, char *outfileName);
-    int TransformGraph(char const *commandString, char const *infileName, char *inputStr, int *outputBase, char const *outfileName, char **outputStr);
-    int TestAllGraphs(char *commandString, char *infileName, char *outfileName, char **outputStr);
+    int RandomGraph(char const *const commandString, int extraEdges, int numVertices, char *outfileName, char *outfile2Name);
+    int RandomGraphs(char const *const commandString, int NumGraphs, int SizeOfGraphs, char *outfileName);
+    int TransformGraph(char const *const commandString, char const *const infileName, char *inputStr, int *outputBase, char const *outfileName, char **outputStr);
+    int TestAllGraphs(char const *const commandString, char const *const infileName, char *outfileName, char **outputStr);
 
     /* Command line, Menu, and Configuration */
     int menu(void);
@@ -58,14 +58,20 @@ extern "C"
     int TextFilesEqual(char *file1Name, char *file2Name);
     int BinaryFilesEqual(char *file1Name, char *file2Name);
 
-    int GetEmbedFlags(char command);
+    int GetCommandAndOptionalModifier(const char *commandString, char *command, char *modifier);
+    int GetEmbedFlags(char command, char modifier, int *embedFlags);
+
     char const *GetAlgorithmName(char command);
+
     char const *GetTransformationName(char command);
     char const *GetBaseName(int baseFlag);
-    void AttachAlgorithm(graphP theGraph, char command);
+
+    int AttachAlgorithm(graphP theGraph, char command);
 
     char *ConstructInputFilename(char const *infileName);
+
     char *ConstructPrimaryOutputFilename(char const *infileName, char const *outfileName, char command);
+
     int ConstructTransformationExpectedResultFilename(char const *infileName, char **outfileName, char command, int actualOrExpectedFlag);
     void WriteAlgorithmResults(graphP theGraph, int Result, char command, platform_time start, platform_time end, char const *infileName);
 

@@ -346,6 +346,9 @@ int BinaryFilesEqual(char *file1Name, char *file2Name)
 
 char const *GetAlgorithmFlags(void)
 {
+    // FIXME: How do we want to indicate to users that they may supply an
+    // optional modifier character in the command-line flag (i.e. only allow -3e
+    // when Certifying K_{3,3} search is merged)
     return "C = command (algorithm implementation to run)\n"
            "    -p = Planar embedding and Kuratowski subgraph isolation\n"
            "    -d = Planar graph drawing by visibility representation\n"
@@ -358,6 +361,9 @@ char const *GetAlgorithmFlags(void)
 
 char const *GetAlgorithmSpecifiers(void)
 {
+    // FIXME: How do we want to indicate to users that they may supply an
+    // optional modifier character to certain graph algorithm specifiers
+    // (i.e. only 3e when Certifying K_{3,3} search is merged)
     return "P. Planar embedding and Kuratowski subgraph isolation\n"
            "D. Planar graph drawing by visibility representation\n"
            "O. Outerplanar embedding and obstruction isolation\n"
@@ -366,47 +372,137 @@ char const *GetAlgorithmSpecifiers(void)
            "4. Search for subgraph homeomorphic to K_4\n";
 }
 
+// FIXME: Do we want to have some sort of equivalent to this function indicating
+// allowed modifier characters per-command?
 char const *GetAlgorithmChoices(void)
 {
     return "pdo234";
 }
 
 /****************************************************************************
+ * GetCommandAndOptionalModifier()
+ *
+ * When provided with a valid commandString, determine the command character
+ * (and optional modifier) and return to the caller via the pointers to chars.
+ *
+ * Note that characters are processed with tolower(), since comparisons are
+ * typically performed only against lower-case letters; when applied to a digit
+ * (or to any other character where such conversion is not possible), tolower()
+ * returns the same character.
+ *
+ * Returns OK when command (and optional modifier) are successfully extracted
+ * from the commandString; no validation of the characters supplied is performed
+ * at this point.
+ *
+ * Returns NOTOK if the commandString is invalid, or if
+ * the pointer to the character to which you wish to assign the extracted
+ * character is NULL.
  ****************************************************************************/
 
-int GetEmbedFlags(char command)
+int GetCommandAndOptionalModifier(const char *commandString, char *command, char *modifier)
 {
-    int embedFlags = 0;
+    if (commandString != NULL && commandString[0] == '-')
+        commandString++;
 
-    switch (command)
+    if (commandString == NULL || strlen(commandString) == 0)
     {
-    case 'o':
-        embedFlags = EMBEDFLAGS_OUTERPLANAR;
-        break;
-    case 'p':
-        embedFlags = EMBEDFLAGS_PLANAR;
-        break;
-    case 'd':
-        embedFlags = EMBEDFLAGS_DRAWPLANAR;
-        break;
-    case '2':
-        embedFlags = EMBEDFLAGS_SEARCHFORK23;
-        break;
-    case '3':
-        embedFlags = EMBEDFLAGS_SEARCHFORK33;
-        break;
-    case '4':
-        embedFlags = EMBEDFLAGS_SEARCHFORK4;
-        break;
-    default:
-        break;
+        ErrorMessage("Cannot get embed flags for empty command string.\n");
+        return NOTOK;
     }
 
-    return embedFlags;
+    if (command == NULL)
+    {
+        ErrorMessage("Pointer to character to which to write command is NULL.\n");
+        return NOTOK;
+    }
+
+    (*command) = '\0';
+
+    if (modifier != NULL)
+        (*modifier) = '\0';
+
+    if (strlen(commandString) == 1)
+    {
+        (*command) = tolower(commandString[0]);
+    }
+    else if (strlen(commandString) == 2)
+    {
+        (*command) = tolower(commandString[0]);
+        if (modifier != NULL)
+            (*modifier) = tolower(commandString[1]);
+    }
+
+    return OK;
 }
 
 /****************************************************************************
+ * GetEmbedFlags()
+ *
+ * Derives the embedFlags when provided with a valid command character (and
+ * optionally a modifier)
+ *
+ * Returns OK if embedFlags successfully derived, NOTOK if command and/or
+ * modifier character is invalid, or if the pointer to the integer to which you
+ * wish to assign the derived embedFlags is NULL.
  ****************************************************************************/
+
+int GetEmbedFlags(char command, char modifier, int *embedFlagsP)
+{
+    if (embedFlagsP == NULL)
+    {
+        ErrorMessage("Pointer to embedFlags int is NULL.\n");
+        return NOTOK;
+    }
+
+    switch (command)
+    {
+    case 'p':
+        (*embedFlagsP) = EMBEDFLAGS_PLANAR;
+        break;
+    case 'd':
+        (*embedFlagsP) = EMBEDFLAGS_DRAWPLANAR;
+        break;
+    case 'o':
+        (*embedFlagsP) = EMBEDFLAGS_OUTERPLANAR;
+        break;
+    case '2':
+        (*embedFlagsP) = EMBEDFLAGS_SEARCHFORK23;
+        break;
+    case '3':
+        (*embedFlagsP) = EMBEDFLAGS_SEARCHFORK33;
+        // Future TODO: Add logic: if command == '3' and modifier == 'e',
+        // then embedFlagsP |= EMBEDFLAGS_SEARCHEMBED (or similar)
+        // Future TODO: Error out if modifier char is anything other than 'e'
+        break;
+    case '4':
+        (*embedFlagsP) = EMBEDFLAGS_SEARCHFORK4;
+        break;
+    default:
+        ErrorMessage("Unrecognized algorithm command specifier.\n");
+        return NOTOK;
+    }
+
+    // Future TODO: Currently, there are no graph algorithm extensions for which
+    // we wish to specify a modifier; if an additional character after the
+    // command specifier is given, then error out. In the future, once there are
+    // graph algorithm extensions whose behaviour may be conditioned on a user-
+    // specified modifier character, this check should be removed.
+    if (modifier != '\0')
+    {
+        ErrorMessage("Algorithm modifiers currently not supported.\n");
+        return NOTOK;
+    }
+
+    return OK;
+}
+
+/****************************************************************************
+ * GetAlgorithmName()
+ *
+ * When provided with a valid command char, derives the corresponding algorithm
+ * name returned via char const * to the caller. This memory should not be
+ * freed by the caller.
+ * ****************************************************************************/
 
 char const *GetAlgorithmName(char command)
 {
@@ -487,27 +583,48 @@ char const *GetBaseName(int baseFlag)
 }
 
 /****************************************************************************
+ * AttachAlgorithm()
+ *
+ * Determines the main graph algorithm command indicated by the command char
+ * and attaches the corresponding graph algorithm extension. The modifier is not
+ * required to determine which graph algorithm extension to attach, and is only
+ * used to signal that the behaviour of the main extension should be modified.
+ *
+ * Returns OK if graph algorithm extension corresponding to the command char
+ * was successfully attached. Returns NOTOK if theGraph is not properly
+ * initialized, if attaching the graph algorithm extension failed, or if an
+ * invalid command char was supplied.
  ****************************************************************************/
 
-void AttachAlgorithm(graphP theGraph, char command)
+int AttachAlgorithm(graphP theGraph, char command)
 {
+    if (theGraph == NULL || theGraph->N <= 0)
+    {
+        ErrorMessage("Unable to attach graph algorithm extension to NULL or uninitialized graphP.\n");
+        return NOTOK;
+    }
+
     switch (command)
     {
+    case 'p':
+        // Planarity is attached by default
+        return OK;
     case 'd':
-        gp_AttachDrawPlanar(theGraph);
-        break;
+        return gp_AttachDrawPlanar(theGraph);
+    case 'o':
+        // Outerplanarity is attached by default
+        return OK;
     case '2':
-        gp_AttachK23Search(theGraph);
-        break;
+        return gp_AttachK23Search(theGraph);
     case '3':
-        gp_AttachK33Search(theGraph);
-        break;
+        return gp_AttachK33Search(theGraph);
     case '4':
-        gp_AttachK4Search(theGraph);
-        break;
+        return gp_AttachK4Search(theGraph);
     default:
         break;
     }
+
+    return NOTOK;
 }
 
 /****************************************************************************
@@ -529,6 +646,9 @@ char theFileName[FILENAMEMAXLENGTH + 1 + ALGORITHMNAMEMAXLENGTH + 1 + SUFFIXMAXL
  If infileName is NULL, then the user is asked to supply a name.
  Returns NULL on error, or a non-NULL string on success.
  ****************************************************************************/
+
+// FIXME: Should I update to char const * const infileName, since we never
+// manipulate the infileName contents, nor the pointer?
 
 char *ConstructInputFilename(char const *infileName)
 {
@@ -566,14 +686,19 @@ char *ConstructInputFilename(char const *infileName)
 }
 
 /****************************************************************************
- ConstructPrimaryOutputFilename()
- Returns a string not owned by the caller (do not free string).
- Reuses the same memory space as ConstructInputFilename().
- If outfileName is non-NULL, then the result string contains its content.
- If outfileName is NULL, then the infileName and the command's algorithm name
- are used to construct a string.
- Returns non-NULL string
+ * ConstructPrimaryOutputFilename()
+ *
+ * Returns a string not owned by the caller (do not free string).
+ * Reuses the same memory space as ConstructInputFilename().
+ * If outfileName is non-NULL, then the result string contains its content.
+ * If outfileName is NULL, then the infileName and the command's algorithm name
+ * are used to construct a string.
+ *
+ * Returns non-NULL string
  ****************************************************************************/
+
+// FIXME: Do we want to incorporate the modifier derived from the commandString
+// in the primary output file name?
 
 char *ConstructPrimaryOutputFilename(char const *infileName, char const *outfileName, char command)
 {
@@ -593,7 +718,7 @@ char *ConstructPrimaryOutputFilename(char const *infileName, char const *outfile
             strcat(theFileName, algorithmName);
         }
         else
-            ErrorMessage("Algorithm Name is too long, so it will not be used in output filename.");
+            ErrorMessage("Algorithm Name is too long, so it will not be used in output filename.\n");
 
         strcat(theFileName, ".out.txt");
     }
@@ -634,13 +759,16 @@ char *ConstructPrimaryOutputFilename(char const *infileName, char const *outfile
 }
 
 /****************************************************************************
- ConstructTransformationExpectedResultFilename()
- Returns a string whose ownership will be transferred to the caller (must free string).
- If outfileName is non-NULL, then the result string contains its content.
- If outfileName is NULL, then the infileName, the command's algorithm name, and
- whether or not this output file correspond to the actual (0) or expected (1)
- output file from testing are used to construct a string.
- Returns non-NULL string
+ * ConstructTransformationExpectedResultFilename()
+ *
+ * Returns a string whose ownership will be transferred to the caller (must free
+ * string).
+ * If outfileName is non-NULL, then the result string contains its content
+ * If outfileName is NULL, then the infileName, the command's algorithm name,
+ * and whether or not this output file correspond to the actual (0) or expected
+ * (1) output file from testing are used to construct a string.
+ *
+ * Returns non-NULL string
  ****************************************************************************/
 
 int ConstructTransformationExpectedResultFilename(char const *infileName, char **outfileName, char command, int baseFlag)
@@ -658,7 +786,10 @@ int ConstructTransformationExpectedResultFilename(char const *infileName, char *
 
     if ((*outfileName) == NULL)
     {
-        (*outfileName) = (char *)calloc(infileNameLen + 1 + strlen(baseName) + 1 + strlen(transformationName) + ((command == 'g') ? strlen(".out.g6") : strlen(".out.txt")) + 1, sizeof(char));
+        (*outfileName) = (char *)calloc(
+            infileNameLen + 1 + strlen(baseName) + 1 + strlen(transformationName) +
+                ((command == 'g') ? strlen(".out.g6") : strlen(".out.txt")) + 1,
+            sizeof(char));
 
         if ((*outfileName) == NULL)
         {

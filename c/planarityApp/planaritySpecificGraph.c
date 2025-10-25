@@ -8,7 +8,7 @@ See the LICENSE.TXT file for licensing information.
 
 /****************************************************************************
  SpecificGraph()
- command - a menu letter (e.g. p,d,o,2,3,4) indicating the algorithm to run on the specific graph
+ commandString - a string (e.g. p,d,o,2,3,3e,4) indicating the algorithm to run on the specific graph
  infilename - name of file to read, or NULL to cause the program to prompt the user for a filename
  outfilename - name of primary output file, or NULL to construct an output filename based on the input
  outfile2Name - name of a secondary output file, or NULL to suppress secondary output, or empty string
@@ -31,13 +31,30 @@ See the LICENSE.TXT file for licensing information.
  ****************************************************************************/
 
 int SpecificGraph(
-    char command,
+    char const *const commandString,
     char const *infileName, char *outfileName, char *outfile2Name,
     char *inputStr, char **pOutputStr, char **pOutput2Str)
 {
+    int Result = OK;
+
     graphP theGraph, origGraph;
     platform_time start, end;
-    int Result = OK;
+
+    char command = '\0', modifier = '\0';
+    int embedFlags = 0;
+
+    if (GetCommandAndOptionalModifier(commandString, &command, &modifier) != OK)
+    {
+        ErrorMessage("Unable to derive command and modifier from commandString.\n");
+        return NOTOK;
+    }
+
+    if (GetEmbedFlags(command, modifier, &embedFlags) != OK)
+    {
+        ErrorMessage("Unable to derive embedFlags from command and optional modifier character.\n");
+
+        return NOTOK;
+    }
 
     // Get the filename of the graph to test
     if (inputStr == NULL)
@@ -66,72 +83,64 @@ int SpecificGraph(
 
     // Read the graph into memory
     if (inputStr == NULL)
-    {
         Result = gp_Read(theGraph, infileName);
-    }
     else
-    {
         Result = gp_ReadFromString(theGraph, inputStr);
-    }
 
-    // If there was an unrecoverable error, report it
+    // If there was an unrecoverable error, report it and exit early.
     if (Result != OK)
     {
-        ErrorMessage("Failed to read graph\n");
+        ErrorMessage("Failed to read graph.\n");
+
+        gp_Free(&theGraph);
+
+        return NOTOK;
     }
-    // Otherwise, call the correct algorithm on it
+
+    // Copy the graph for integrity checking
+    origGraph = gp_DupGraph(theGraph);
+
+    if (origGraph == NULL)
+    {
+        ErrorMessage("Unable to duplicate original graph.\n");
+
+        gp_Free(&theGraph);
+
+        return NOTOK;
+    }
+
+    // Run the algorithm
+    if (AttachAlgorithm(theGraph, command) == OK)
+    {
+        platform_GetTime(start);
+
+        //          gp_CreateDFSTree(theGraph);
+        //          gp_SortVertices(theGraph);
+        //          gp_Write(theGraph, "debug.before.txt", WRITE_DEBUGINFO);
+        //          gp_SortVertices(theGraph);
+
+        // FIXME: Nothing is done with this Result other than pass to
+        // gp_TestEmbedResultIntegrity() for confirmation... Should we early-out
+        // if Result == NOTOK, i.e. only run gp_TestEmbedResultIntegrity()
+        // if Result of gp_Embed() is OK/NONEMBEDDABLE?
+        Result = gp_Embed(theGraph, embedFlags);
+        platform_GetTime(end);
+        Result = gp_TestEmbedResultIntegrity(theGraph, origGraph, Result);
+    }
     else
     {
-        int embedFlags = GetEmbedFlags(command);
-
-        // Copy the graph for integrity checking
-        origGraph = gp_DupGraph(theGraph);
-
-        // Run the algorithm
-        if (strchr(GetAlgorithmChoices(), command))
-        {
-            switch (command)
-            {
-            case 'd':
-                gp_AttachDrawPlanar(theGraph);
-                break;
-            case '2':
-                gp_AttachK23Search(theGraph);
-                break;
-            case '3':
-                gp_AttachK33Search(theGraph);
-                break;
-            case '4':
-                gp_AttachK4Search(theGraph);
-                break;
-            default:
-                break;
-            }
-
-            platform_GetTime(start);
-
-            //          gp_CreateDFSTree(theGraph);
-            //          gp_SortVertices(theGraph);
-            //          gp_Write(theGraph, "debug.before.txt", WRITE_DEBUGINFO);
-            //          gp_SortVertices(theGraph);
-
-            Result = gp_Embed(theGraph, embedFlags);
-            platform_GetTime(end);
-            Result = gp_TestEmbedResultIntegrity(theGraph, origGraph, Result);
-        }
-        else
-        {
-            platform_GetTime(start);
-            Result = NOTOK;
-            platform_GetTime(end);
-        }
-
-        // Write what the algorithm determined and how long it took
-        WriteAlgorithmResults(theGraph, Result, command, start, end, infileName);
-
-        // Free the graph obtained for integrity checking.
-        gp_Free(&origGraph);
+        platform_GetTime(start);
+        Result = NOTOK;
+        platform_GetTime(end);
     }
+
+    // Write what the algorithm determined and how long it took
+    // FIXME: Do I need to augment WriteAlgorithmResults() to incorporate the
+    // modifier, if supplied?
+    WriteAlgorithmResults(theGraph, Result, command, start, end, infileName);
+
+    // Free the graph obtained for integrity checking.
+    gp_Free(&origGraph);
 
     // Report an error, if there was one, free the graph, and return
     if (Result != OK && Result != NONEMBEDDABLE)
@@ -225,8 +234,14 @@ int SpecificGraph(
 }
 
 /****************************************************************************
- WriteAlgorithmResults()
+ * WriteAlgorithmResults()
  ****************************************************************************/
+
+// FIXME: Should WriteAlgorithmResults() also accept modifier char, and if so,
+// then how should it change the output?
+
+// FIXME: Should WriteAlgorithmResults() be moved into planarityUtils.c, since
+// it's used by RandomGraph() as well?
 
 void WriteAlgorithmResults(graphP theGraph, int Result, char command, platform_time start, platform_time end, char const *infileName)
 {
@@ -262,6 +277,7 @@ void WriteAlgorithmResults(graphP theGraph, int Result, char command, platform_t
         sprintf(messageContents, "has %s subgraph homeomorphic to K_{2,3}.\n", Result == OK ? "no" : "a");
         break;
     case '3':
+        // FIXME: Should we indicate if K33CERT modifier was specified in this message?
         sprintf(messageContents, "has %s subgraph homeomorphic to K_{3,3}.\n", Result == OK ? "no" : "a");
         break;
     case '4':
@@ -273,6 +289,8 @@ void WriteAlgorithmResults(graphP theGraph, int Result, char command, platform_t
     }
     Message(messageContents);
 
+    // FIXME: Should message include any info about the graph algorithm extension
+    // being run in a particular mode dictated by modifier?
     sprintf(messageContents, "Algorithm '%s' executed in %.3lf seconds.\n",
             GetAlgorithmName(command), platform_GetDuration(start, end));
     Message(messageContents);

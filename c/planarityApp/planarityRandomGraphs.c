@@ -11,36 +11,55 @@ void ReinitializeGraph(graphP *pGraph, int ReuseGraphs, char command);
 graphP MakeGraph(int Size, char command);
 
 /****************************************************************************
- RandomGraphs()
- Top-level method to randomly generate graphs to test the algorithm given by
- the command parameter.
- The number of graphs to generate, and the number of vertices for each graph,
- can be sent as the second and third params.  For each that is sent as zero,
- this method will prompt the user for a value.
+ * RandomGraphs()
+ *
+ * Top-level method to randomly generate graphs to test the algorithm given by
+ * the command parameter.
+ * The number of graphs to generate, and the number of vertices for each graph,
+ * can be sent as the second and third params.  For each that is sent as zero,
+ * this method will prompt the user for a value.
  ****************************************************************************/
 
 #define NUM_MINORS 9
 
-int RandomGraphs(char command, int NumGraphs, int SizeOfGraphs, char *outfileName)
+int RandomGraphs(char const *const commandString, int NumGraphs, int SizeOfGraphs, char *outfileName)
 {
-    int K, countUpdateFreq;
-    int Result = OK, MainStatistic = 0;
+    int Result = OK;
+
+    char command = '\0', modifier = '\0';
+
+    int K = 0, countUpdateFreq = 0, embedFlags = 0, MainStatistic = 0;
     int ObstructionMinorFreqs[NUM_MINORS];
-    graphP theGraph = NULL, origGraph = NULL;
-    platform_time start, end;
-    int embedFlags = GetEmbedFlags(command);
     int ReuseGraphs = TRUE;
     int writeResult;
     int writeErrorReported_Random = FALSE, writeErrorReported_Embedded = FALSE,
         writeErrorReported_AdjList = FALSE, writeErrorReported_Obstructed = FALSE,
         writeErrorReported_Error = FALSE;
 
+    graphP theGraph = NULL, origGraph = NULL;
+
+    platform_time start, end;
+
     G6WriteIteratorP pG6WriteIterator = NULL;
+
     int charsAvailForStr = 0;
     char const *messageFormat = NULL;
     char messageContents[MAXLINE + 1];
     char theFileName[MAXLINE + 1];
+
     messageContents[0] = theFileName[0] = '\0';
+
+    if ((Result = GetCommandAndOptionalModifier(commandString, &command, &modifier)) != OK)
+    {
+        ErrorMessage("Unable to extract command and optional modifier character from commandString.\n");
+        return Result;
+    }
+
+    if ((Result = GetEmbedFlags(command, modifier, &embedFlags)) != OK)
+    {
+        ErrorMessage("Unable to derive embedFlags from command and optional modifier character.\n");
+        return Result;
+    }
 
     GetNumberIfZero(&NumGraphs, "Enter number of graphs to generate:", 1, 1000000000);
     GetNumberIfZero(&SizeOfGraphs, "Enter size of graphs:", 1, 10000);
@@ -50,6 +69,8 @@ int RandomGraphs(char command, int NumGraphs, int SizeOfGraphs, char *outfileNam
     if (theGraph == NULL || origGraph == NULL)
     {
         gp_Free(&theGraph);
+        gp_Free(&origGraph);
+
         return NOTOK;
     }
 
@@ -62,7 +83,10 @@ int RandomGraphs(char command, int NumGraphs, int SizeOfGraphs, char *outfileNam
         if (allocateG6WriteIterator(&pG6WriteIterator, theGraph) != OK)
         {
             ErrorMessage("Unable to allocate G6WriteIterator.\n");
+
             gp_Free(&theGraph);
+            gp_Free(&origGraph);
+
             return NOTOK;
         }
     }
@@ -161,86 +185,99 @@ int RandomGraphs(char command, int NumGraphs, int SizeOfGraphs, char *outfileNam
                 }
             }
 
-            gp_CopyGraph(origGraph, theGraph);
-
-            if (strchr(GetAlgorithmChoices(), command))
+            // FIXME: I noticed that no check was done on the validity of
+            // origGraph; I realize that below this point, if an error is
+            // encountered, we write the graph on which we encountered an error,
+            // among other work. I think early-out is acceptable here, since
+            // this sort of error likely means that there's something
+            // fundamentally wrong with theGraph or origGraph.
+            if ((Result = gp_CopyGraph(origGraph, theGraph)) != OK)
             {
-                Result = gp_Embed(theGraph, embedFlags);
+                sprintf(messageContents, "Unable to make a copy of graph number %d before embedding.\n", K);
+                ErrorMessage(messageContents);
 
-                if (gp_TestEmbedResultIntegrity(theGraph, origGraph, Result) != Result)
-                    Result = NOTOK;
+                gp_Free(&theGraph);
+                gp_Free(&origGraph);
+                freeG6WriteIterator(&pG6WriteIterator);
 
-                if (Result == OK)
+                return Result;
+            }
+
+            Result = gp_Embed(theGraph, embedFlags);
+
+            if (gp_TestEmbedResultIntegrity(theGraph, origGraph, Result) != Result)
+                Result = NOTOK;
+
+            if (Result == OK)
+            {
+                MainStatistic++;
+
+                if (tolower(EmbeddableOut) == 'y')
                 {
-                    MainStatistic++;
-
-                    if (tolower(EmbeddableOut) == 'y')
+                    sprintf(theFileName, "embedded%c%d.txt", FILE_DELIMITER, K % 10);
+                    writeResult = gp_Write(theGraph, theFileName, WRITE_ADJMATRIX);
+                    if (writeResult != OK && !writeErrorReported_Embedded)
                     {
-                        sprintf(theFileName, "embedded%c%d.txt", FILE_DELIMITER, K % 10);
-                        writeResult = gp_Write(theGraph, theFileName, WRITE_ADJMATRIX);
-                        if (writeResult != OK && !writeErrorReported_Embedded)
-                        {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
-                            sprintf(messageContents, messageFormat, charsAvailForStr, theFileName);
+                        sprintf(messageContents, messageFormat, charsAvailForStr, theFileName);
 #pragma GCC diagnostic pop
-                            ErrorMessage(messageContents);
-                            writeErrorReported_Embedded = TRUE;
-                        }
-                    }
-
-                    if (tolower(AdjListsForEmbeddingsOut) == 'y')
-                    {
-                        sprintf(theFileName, "adjlist%c%d.txt", FILE_DELIMITER, K % 10);
-                        writeResult = gp_Write(theGraph, theFileName, WRITE_ADJLIST);
-                        if (writeResult != OK && !writeErrorReported_AdjList)
-                        {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat-nonliteral"
-                            sprintf(messageContents, messageFormat, charsAvailForStr, theFileName);
-#pragma GCC diagnostic pop
-                            ErrorMessage(messageContents);
-                            writeErrorReported_AdjList = TRUE;
-                        }
+                        ErrorMessage(messageContents);
+                        writeErrorReported_Embedded = TRUE;
                     }
                 }
-                else if (Result == NONEMBEDDABLE)
+
+                if (tolower(AdjListsForEmbeddingsOut) == 'y')
                 {
-                    if (embedFlags == EMBEDFLAGS_PLANAR || embedFlags == EMBEDFLAGS_OUTERPLANAR)
+                    sprintf(theFileName, "adjlist%c%d.txt", FILE_DELIMITER, K % 10);
+                    writeResult = gp_Write(theGraph, theFileName, WRITE_ADJLIST);
+                    if (writeResult != OK && !writeErrorReported_AdjList)
                     {
-                        if (theGraph->IC.minorType & MINORTYPE_A)
-                            ObstructionMinorFreqs[0]++;
-                        else if (theGraph->IC.minorType & MINORTYPE_B)
-                            ObstructionMinorFreqs[1]++;
-                        else if (theGraph->IC.minorType & MINORTYPE_C)
-                            ObstructionMinorFreqs[2]++;
-                        else if (theGraph->IC.minorType & MINORTYPE_D)
-                            ObstructionMinorFreqs[3]++;
-                        else if (theGraph->IC.minorType & MINORTYPE_E)
-                            ObstructionMinorFreqs[4]++;
-
-                        if (theGraph->IC.minorType & MINORTYPE_E1)
-                            ObstructionMinorFreqs[5]++;
-                        else if (theGraph->IC.minorType & MINORTYPE_E2)
-                            ObstructionMinorFreqs[6]++;
-                        else if (theGraph->IC.minorType & MINORTYPE_E3)
-                            ObstructionMinorFreqs[7]++;
-                        else if (theGraph->IC.minorType & MINORTYPE_E4)
-                            ObstructionMinorFreqs[8]++;
-
-                        if (tolower(ObstructedOut) == 'y')
-                        {
-                            sprintf(theFileName, "obstructed%c%d.txt", FILE_DELIMITER, K % 10);
-                            writeResult = gp_Write(theGraph, theFileName, WRITE_ADJMATRIX);
-                            if (writeResult != OK && !writeErrorReported_Obstructed)
-                            {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
-                                sprintf(messageContents, messageFormat, charsAvailForStr, theFileName);
+                        sprintf(messageContents, messageFormat, charsAvailForStr, theFileName);
 #pragma GCC diagnostic pop
-                                ErrorMessage(messageContents);
-                                writeErrorReported_Obstructed = TRUE;
-                            }
+                        ErrorMessage(messageContents);
+                        writeErrorReported_AdjList = TRUE;
+                    }
+                }
+            }
+            else if (Result == NONEMBEDDABLE)
+            {
+                if (embedFlags == EMBEDFLAGS_PLANAR || embedFlags == EMBEDFLAGS_OUTERPLANAR)
+                {
+                    if (theGraph->IC.minorType & MINORTYPE_A)
+                        ObstructionMinorFreqs[0]++;
+                    else if (theGraph->IC.minorType & MINORTYPE_B)
+                        ObstructionMinorFreqs[1]++;
+                    else if (theGraph->IC.minorType & MINORTYPE_C)
+                        ObstructionMinorFreqs[2]++;
+                    else if (theGraph->IC.minorType & MINORTYPE_D)
+                        ObstructionMinorFreqs[3]++;
+                    else if (theGraph->IC.minorType & MINORTYPE_E)
+                        ObstructionMinorFreqs[4]++;
+
+                    if (theGraph->IC.minorType & MINORTYPE_E1)
+                        ObstructionMinorFreqs[5]++;
+                    else if (theGraph->IC.minorType & MINORTYPE_E2)
+                        ObstructionMinorFreqs[6]++;
+                    else if (theGraph->IC.minorType & MINORTYPE_E3)
+                        ObstructionMinorFreqs[7]++;
+                    else if (theGraph->IC.minorType & MINORTYPE_E4)
+                        ObstructionMinorFreqs[8]++;
+
+                    if (tolower(ObstructedOut) == 'y')
+                    {
+                        sprintf(theFileName, "obstructed%c%d.txt", FILE_DELIMITER, K % 10);
+                        writeResult = gp_Write(theGraph, theFileName, WRITE_ADJMATRIX);
+                        if (writeResult != OK && !writeErrorReported_Obstructed)
+                        {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+                            sprintf(messageContents, messageFormat, charsAvailForStr, theFileName);
+#pragma GCC diagnostic pop
+                            ErrorMessage(messageContents);
+                            writeErrorReported_Obstructed = TRUE;
                         }
                     }
                 }
@@ -414,6 +451,8 @@ void GetNumberIfZero(int *pNum, char const *prompt, int min, int max)
 graphP MakeGraph(int Size, char command)
 {
     graphP theGraph;
+    char messageContents[MAXLINE + 1];
+
     if ((theGraph = gp_New()) == NULL || gp_InitGraph(theGraph, Size) != OK)
     {
         ErrorMessage("Error creating space for a graph of the given size.\n");
@@ -421,27 +460,13 @@ graphP MakeGraph(int Size, char command)
         return NULL;
     }
 
-    // Enable the appropriate feature. Although the same code appears in SpecificGraph,
-    // it is deliberately not separated to a common utility because SpecificGraph is
-    // used as a self-contained tutorial.  It is not that hard to update both locations
-    // when new algorithms are added.
-
-    switch (command)
+    if (AttachAlgorithm(theGraph, command) != OK)
     {
-    case 'd':
-        gp_AttachDrawPlanar(theGraph);
-        break;
-    case '2':
-        gp_AttachK23Search(theGraph);
-        break;
-    case '3':
-        gp_AttachK33Search(theGraph);
-        break;
-    case '4':
-        gp_AttachK4Search(theGraph);
-        break;
-    default:
-        break;
+        sprintf(messageContents, "Unable to attach graph algorithm extension corresponding to command '%c'\n", command);
+        ErrorMessage(messageContents);
+
+        gp_Free(&theGraph);
+        theGraph = NULL;
     }
 
     return theGraph;
@@ -469,17 +494,30 @@ void ReinitializeGraph(graphP *pGraph, int ReuseGraphs, char command)
  Creates a random maximal planar graph, then adds 'extraEdges' edges to it.
  ****************************************************************************/
 
-int RandomGraph(char command, int extraEdges, int numVertices, char *outfileName, char *outfile2Name)
+int RandomGraph(char const *const commandString, int extraEdges, int numVertices, char *outfileName, char *outfile2Name)
 {
     int Result;
+
     platform_time start, end;
-    graphP theGraph = NULL, origGraph;
-    int embedFlags = GetEmbedFlags(command);
-    char saveEdgeListFormat;
+    graphP theGraph = NULL, origGraph = NULL;
+    int embedFlags = 0;
+    char saveEdgeListFormat = '\0', command = '\0', modifier = '\0';
 
     char const *messageFormat = NULL;
     char messageContents[MAXLINE + 1];
     int charsAvailForStr = 0;
+
+    if ((Result = GetCommandAndOptionalModifier(commandString, &command, &modifier)) != OK)
+    {
+        ErrorMessage("Unable to extract command and optional modifier character from commandString.\n");
+        return Result;
+    }
+
+    if ((Result = GetEmbedFlags(command, modifier, &embedFlags)) != OK)
+    {
+        ErrorMessage("Unable to derive embedFlags from command and optional modifier character.\n");
+        return Result;
+    }
 
     GetNumberIfZero(&numVertices, "Enter number of vertices:", 1, 1000000);
     if ((theGraph = MakeGraph(numVertices, command)) == NULL)
@@ -513,18 +551,13 @@ int RandomGraph(char command, int extraEdges, int numVertices, char *outfileName
     Message("Now processing\n");
     FlushConsole(stdout);
 
-    if (strchr(GetAlgorithmChoices(), command))
-    {
-        platform_GetTime(start);
-        Result = gp_Embed(theGraph, embedFlags);
-        platform_GetTime(end);
+    platform_GetTime(start);
+    Result = gp_Embed(theGraph, embedFlags);
+    platform_GetTime(end);
 
-        gp_SortVertices(theGraph);
+    gp_SortVertices(theGraph);
 
-        if (gp_TestEmbedResultIntegrity(theGraph, origGraph, Result) != Result)
-            Result = NOTOK;
-    }
-    else
+    if (gp_TestEmbedResultIntegrity(theGraph, origGraph, Result) != Result)
         Result = NOTOK;
 
     // Write what the algorithm determined and how long it took

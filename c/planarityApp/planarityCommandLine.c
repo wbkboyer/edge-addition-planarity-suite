@@ -416,18 +416,23 @@ int runSpecificGraphTests(char const *samplesDir)
     return retVal;
 }
 
-int runSpecificGraphTest(char const *command, char const *infileName, int inputInMemFlag)
+int runSpecificGraphTest(char const *commandString, char const *infileName, int inputInMemFlag)
 {
     int Result = OK;
-    char algorithmCode = command[1];
+    char *inputString = NULL, *actualOutput = NULL, *actualOutput2 = NULL;
+    char const *expectedPrimaryResultFileName = "";
+
+    char command = '\0', modifier = '\0';
+
+    if (GetCommandAndOptionalModifier(commandString, &command, &modifier) != OK)
+    {
+        Message("Unable to extract command (and optionally modifier) from command string.\n");
+        return -1;
+    }
 
     // The algorithm, indicated by algorithmCode, operating on 'infilename' is expected to produce
     // an output that is stored in the file named 'expectedResultFileName' (return string not owned)
-    char const *expectedPrimaryResultFileName = ConstructPrimaryOutputFilename(infileName, NULL, command[1]);
-
-    char *inputString = NULL;
-    char *actualOutput = NULL;
-    char *actualOutput2 = NULL;
+    expectedPrimaryResultFileName = ConstructPrimaryOutputFilename(infileName, NULL, command);
 
     // SpecificGraph() can invoke gp_Read() if the graph is to be read from a file, or it can invoke
     // gp_ReadFromString() if the inputInMemFlag is set.
@@ -445,7 +450,7 @@ int runSpecificGraphTest(char const *command, char const *infileName, int inputI
     {
         // Perform the indicated algorithm on the graph in the input file or string. gp_ReadFromString()
         // will handle freeing inputString.
-        Result = SpecificGraph(algorithmCode,
+        Result = SpecificGraph(commandString,
                                infileName, NULL, NULL,
                                inputString, &actualOutput, &actualOutput2);
     }
@@ -472,7 +477,7 @@ int runSpecificGraphTest(char const *command, char const *infileName, int inputI
     }
 
     // Test that the secondary actual output matches the secondary expected output
-    if (algorithmCode == 'd' && Result == 0)
+    if (command == 'd' && Result == 0)
     {
         char *expectedSecondaryResultFileName = (char *)malloc(strlen(expectedPrimaryResultFileName) + strlen(".render.txt") + 1);
 
@@ -621,21 +626,20 @@ int runGraphTransformationTest(char const *command, char const *infileName, int 
 // 'planarity -r [-q] C K N [O]': Random graphs
 int callRandomGraphs(int argc, char *argv[])
 {
-    char Choice = 0;
-    int offset = 0, NumGraphs, SizeOfGraphs;
-    char *outfileName = NULL;
+    int offset = 0, NumGraphs = 0, SizeOfGraphs = 0;
+    char *Choice = NULL, *outfileName = NULL;
 
     if (argc < 5 || argc > 7)
         return -1;
 
-    if (argv[2][0] == '-' && (Choice = argv[2][1]) == 'q')
+    if (strncmp(argv[2], "-q", 2) == 0)
     {
-        Choice = argv[3][1];
         if (argc < 6)
             return -1;
         offset = 1;
     }
 
+    Choice = argv[2 + offset];
     NumGraphs = atoi(argv[3 + offset]);
     SizeOfGraphs = atoi(argv[4 + offset]);
 
@@ -654,20 +658,20 @@ int callRandomGraphs(int argc, char *argv[])
 // 'planarity -s [-q] C I O [O2]': Specific graph
 int callSpecificGraph(int argc, char *argv[])
 {
-    char Choice = 0, *infileName = NULL, *outfileName = NULL, *outfile2Name = NULL;
+    char *Choice = NULL, *infileName = NULL, *outfileName = NULL, *outfile2Name = NULL;
     int offset = 0;
 
     if (argc < 5)
         return -1;
 
-    if (argv[2][0] == '-' && (Choice = argv[2][1]) == 'q')
+    if (strncmp(argv[2], "-q", 2) == 0)
     {
-        Choice = argv[3][1];
         if (argc < 6)
             return -1;
         offset = 1;
     }
 
+    Choice = argv[2 + offset];
     infileName = argv[3 + offset];
     outfileName = argv[4 + offset];
     if (argc == 6 + offset)
@@ -689,7 +693,7 @@ int callRandomMaxPlanarGraph(int argc, char *argv[])
     if (argc < 4)
         return -1;
 
-    if (argv[2][0] == '-' && argv[2][1] == 'q')
+    if (strncmp(argv[2], "-q", 2) == 0)
     {
         if (argc < 5)
             return -1;
@@ -701,7 +705,7 @@ int callRandomMaxPlanarGraph(int argc, char *argv[])
     if (argc == 5 + offset)
         outfile2Name = argv[4 + offset];
 
-    return RandomGraph('p', 0, numVertices, outfileName, outfile2Name);
+    return RandomGraph("p", 0, numVertices, outfileName, outfile2Name);
 }
 
 /****************************************************************************
@@ -717,7 +721,7 @@ int callRandomNonplanarGraph(int argc, char *argv[])
     if (argc < 4)
         return -1;
 
-    if (argv[2][0] == '-' && argv[2][1] == 'q')
+    if (strncmp(argv[2], "-q", 2) == 0)
     {
         if (argc < 5)
             return -1;
@@ -729,7 +733,7 @@ int callRandomNonplanarGraph(int argc, char *argv[])
     if (argc == 5 + offset)
         outfile2Name = argv[4 + offset];
 
-    return RandomGraph('p', 1, numVertices, outfileName, outfile2Name);
+    return RandomGraph("p", 1, numVertices, outfileName, outfile2Name);
 }
 
 /****************************************************************************

@@ -14,7 +14,8 @@ void TestAllGraphsMenu(void);
 
 int menu(void)
 {
-    char Choice;
+    char commandString[3];
+    char command = '\0';
 
     do
     {
@@ -32,30 +33,35 @@ int menu(void)
 
         Prompt("Enter Choice: ");
         fflush(stdin);
-        scanf(" %c", &Choice);
-        Choice = (char)tolower(Choice);
+        scanf(" %2s", commandString);
 
-        if (Choice == 'h')
+        if (GetCommandAndOptionalModifier(commandString, &command, NULL) != OK)
+        {
+            Message("Unable to extract command from choice, please try again.\n");
+            continue;
+        }
+
+        if (command == 'h')
             helpMessage(NULL);
 
-        else if (Choice == 'r')
+        else if (command == 'r')
             Reconfigure();
 
-        else if (Choice == 'x')
+        else if (command == 'x')
             TransformGraphMenu();
 
-        else if (Choice == 't')
+        else if (command == 't')
             TestAllGraphsMenu();
 
-        else if (Choice != 'q')
+        else if (command != 'q')
         {
             char *secondOutfile = NULL;
-            if (Choice == 'p' || Choice == 'd' || Choice == 'o')
+            if (command == 'p' || command == 'd' || command == 'o')
                 secondOutfile = (char *)"";
 
-            if (!strchr(GetAlgorithmChoices(), Choice))
+            if (!strchr(GetAlgorithmChoices(), command))
             {
-                Message("Invalid menu choice, please try again.");
+                Message("Invalid menu choice, please try again.\n");
             }
 
             else
@@ -63,16 +69,16 @@ int menu(void)
                 switch (tolower(Mode))
                 {
                 case 's':
-                    SpecificGraph(Choice, NULL, NULL, secondOutfile, NULL, NULL, NULL);
+                    SpecificGraph(commandString, NULL, NULL, secondOutfile, NULL, NULL, NULL);
                     break;
                 case 'r':
-                    RandomGraphs(Choice, 0, 0, NULL);
+                    RandomGraphs(commandString, 0, 0, NULL);
                     break;
                 case 'm':
-                    RandomGraph(Choice, 0, 0, NULL, NULL);
+                    RandomGraph(commandString, 0, 0, NULL, NULL);
                     break;
                 case 'n':
-                    RandomGraph(Choice, 1, 0, NULL, NULL);
+                    RandomGraph(commandString, 1, 0, NULL, NULL);
                     break;
                 default:
                     break;
@@ -80,7 +86,7 @@ int menu(void)
             }
         }
 
-        if (Choice != 'r' && Choice != 'q')
+        if (command != 'r' && command != 'q')
         {
             Prompt("\nPress a key then hit ENTER to continue...");
             fflush(stdin);
@@ -90,7 +96,7 @@ int menu(void)
             FlushConsole(stdout);
         }
 
-    } while (Choice != 'q');
+    } while (command != 'q');
 
     // Certain debuggers don't terminate correctly with pending output content
     FlushConsole(stdout);
@@ -185,10 +191,9 @@ void TestAllGraphsMenu(void)
     char *fileNameFormat = NULL;
     char infileName[MAXLINE + 1];
     char outfileName[MAXLINE + 1];
-    char algorithmSpecifier = '\0';
-    char commandStr[3];
+    char commandString[3];
 
-    infileName[0] = outfileName[0] = commandStr[0] = '\0';
+    infileName[0] = outfileName[0] = '\0';
 
     if (GetNumCharsToReprInt(MAXLINE, &numCharsToReprMAXLINE) != OK)
     {
@@ -237,15 +242,12 @@ void TestAllGraphsMenu(void)
     {
         Message(GetAlgorithmSpecifiers());
 
-        Prompt("Enter algorithm specifier: ");
+        Prompt("Enter algorithm specifier (with optional modifier): ");
         fflush(stdin);
-        scanf(" %c", &algorithmSpecifier);
-        algorithmSpecifier = (char)tolower(algorithmSpecifier);
-        if (strchr(GetAlgorithmChoices(), algorithmSpecifier))
-            sprintf(commandStr, "-%c", algorithmSpecifier);
-    } while (strlen(commandStr) == 0);
+        scanf(" %2s", commandString);
+    } while (strlen(commandString) == 0);
 
-    Result = TestAllGraphs(commandStr, infileName, outfileName, NULL);
+    Result = TestAllGraphs(commandString, infileName, outfileName, NULL);
     if (Result != OK)
         ErrorMessage("Algorithm test on all graphs in .g6 input file failed.\n");
 
