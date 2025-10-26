@@ -16,7 +16,7 @@ extern int K33SEARCH_ID;
 
 #include "../graph.h"
 
-#ifdef INCLUDE_K33_EMBEDDER
+#ifdef INCLUDE_K33SEARCH_EMBEDDER
 
 /* Imported functions */
 

@@ -100,6 +100,13 @@ extern "C"
 #define EMBEDFLAGS_PROJECTIVEPLANAR 512
 #define EMBEDFLAGS_TOROIDAL 1024
 
+// A flag that has no meaning unless one of the EMBEDFLAGS_SEARCH* flags is also used
+// (and if the search algorithm supports creating an embedding if the desired
+// graph structure is not found by the search).
+#ifdef INCLUDE_K33SEARCH_EMBEDDER
+#define EMBEDFLAGS_SEARCHWITHEMBEDDER 2048
+#endif
+
 /* If LOGGING is defined, then write to the log, otherwise no-op
     By default, neither release nor DEBUG builds including LOGGING.
     Logging is useful for seeing details of how various algorithms

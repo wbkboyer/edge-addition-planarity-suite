@@ -18,7 +18,7 @@ extern int _getImageVertices(graphP theGraph, int *degrees, int maxDegree,
                              int *imageVerts, int maxNumImageVerts);
 extern int _TestSubgraph(graphP theSubgraph, graphP theGraph);
 
-#ifdef INCLUDE_K33_EMBEDDER
+#ifdef INCLUDE_K33SEARCH_EMBEDDER
 // Imports for K_{3,3}-free embedding
 
 extern K33Search_EONodeP _K33Search_EONode_New(int theEOType, graphP theSubgraph, int theSubgraphOwner);
@@ -114,6 +114,7 @@ int gp_AttachK33Search(graphP theGraph)
     context->functions.fpCheckEmbeddingIntegrity = _K33Search_CheckEmbeddingIntegrity;
     context->functions.fpCheckObstructionIntegrity = _K33Search_CheckObstructionIntegrity;
 
+    // Overloads of functions that are called outside of the gp_Embed() processing sequence
     context->functions.fpInitGraph = _K33Search_InitGraph;
     context->functions.fpReinitializeGraph = _K33Search_ReinitializeGraph;
     context->functions.fpEnsureArcCapacity = _K33Search_EnsureArcCapacity;
@@ -169,7 +170,7 @@ void _K33Search_ClearStructures(K33SearchContext *context)
         // Before initialization, the pointers are stray, not NULL
         // Once NULL or allocated, free() or LCFree() can do the job
 
-#ifdef INCLUDE_K33_EMBEDDER
+#ifdef INCLUDE_K33SEARCH_EMBEDDER
         // No associatedEONode until _K33Search_CreateStructures() is called
         context->associatedEONode = NULL;
 #endif
@@ -185,7 +186,7 @@ void _K33Search_ClearStructures(K33SearchContext *context)
     }
     else
     {
-#ifdef INCLUDE_K33_EMBEDDER
+#ifdef INCLUDE_K33SEARCH_EMBEDDER
         // Free associatedEONode, if allocated, and NULL out the pointer
         _K33Search_EONode_Free(&context->associatedEONode);
 #endif
@@ -224,7 +225,7 @@ int _K33Search_CreateStructures(K33SearchContext *context)
     if (context->theGraph->N <= 0)
         return NOTOK;
 
-#ifdef INCLUDE_K33_EMBEDDER
+#ifdef INCLUDE_K33SEARCH_EMBEDDER
     if ((context->associatedEONode = _K33Search_EONode_New(K33SEARCH_EOTYPE_ENODE, context->theGraph, FALSE)) == NULL)
     {
         return NOTOK;
@@ -305,7 +306,7 @@ void _K33Search_ReinitializeGraph(graphP theGraph)
 
     if (context != NULL)
     {
-#ifdef INCLUDE_K33_EMBEDDER
+#ifdef INCLUDE_K33SEARCH_EMBEDDER
         // Get rid of an embedding obstruction tree if one was formed due to operations on this graph
         _K33Search_EONode_Free(&context->associatedEONode);
         if ((context->associatedEONode = _K33Search_EONode_New(K33SEARCH_EOTYPE_ENODE, context->theGraph, FALSE)) == NULL)
@@ -358,7 +359,7 @@ void *_K33Search_DupContext(void *pContext, void *theGraph)
         _K33Search_ClearStructures(newContext);
         if (((graphP)theGraph)->N > 0)
         {
-#ifdef INCLUDE_K33_EMBEDDER
+#ifdef INCLUDE_K33SEARCH_EMBEDDER
             if (_K33Search_TestForEOTreeChildren(context->associatedEONode) == TRUE)
             {
                 ErrorMessage("_K33Search_DupContext(): Duplicating an embedding obstruction tree is unsupported.\n");
@@ -413,7 +414,8 @@ int _K33Search_EmbeddingInitialize(graphP theGraph)
         if (context->functions.fpEmbeddingInitialize(theGraph) != OK)
             return NOTOK;
 
-        if (theGraph->embedFlags == EMBEDFLAGS_SEARCHFORK33)
+        // If the K33 Search is not only be attached but also enabled for the embedding process, then...
+        if ((theGraph->embedFlags & EMBEDFLAGS_SEARCHFORK33) == EMBEDFLAGS_SEARCHFORK33)
         {
             _CreateBackArcLists(theGraph, context);
             _CreateSeparatedDFSChildLists(theGraph, context);
@@ -536,8 +538,8 @@ void _K33Search_EmbedBackEdgeToDescendant(graphP theGraph, int RootSide, int Roo
 
     if (context != NULL)
     {
-        // K33 search may have been attached, but not enabled
-        if (theGraph->embedFlags == EMBEDFLAGS_SEARCHFORK33)
+        // To be here, K33 search must have been attached, but it must also be enabled
+        if ((theGraph->embedFlags & EMBEDFLAGS_SEARCHFORK33) == EMBEDFLAGS_SEARCHFORK33)
         {
             // Get the fwdArc from the adjacentTo field, and use it to get the backArc
             int backArc = gp_GetTwinArc(theGraph, gp_GetVertexPertinentEdge(theGraph, W));
@@ -583,7 +585,8 @@ int _K33Search_MergeBicomps(graphP theGraph, int v, int RootVertex, int W, int W
         /* If the merge is blocked, then a K_{3,3} homeomorph is isolated,
            and NONEMBEDDABLE is returned so that the Walkdown terminates */
 
-        if (theGraph->embedFlags == EMBEDFLAGS_SEARCHFORK33)
+        // Do this special behavior only if K33 Search is also enabled in the search
+        if ((theGraph->embedFlags & EMBEDFLAGS_SEARCHFORK33) == EMBEDFLAGS_SEARCHFORK33)
         {
             int mergeBlocker;
 
@@ -635,7 +638,8 @@ void _K33Search_MergeVertex(graphP theGraph, int W, int WPrevLink, int R)
 
     if (context != NULL)
     {
-        if (theGraph->embedFlags == EMBEDFLAGS_SEARCHFORK33)
+        // Extra work if K33 Search is not only attached, but also being used
+        if ((theGraph->embedFlags & EMBEDFLAGS_SEARCHFORK33) == EMBEDFLAGS_SEARCHFORK33)
         {
             int theList = context->VI[W].separatedDFSChildList;
             theList = LCDelete(context->separatedDFSChildLists, theList, gp_GetDFSChildFromRoot(theGraph, R));
@@ -653,7 +657,7 @@ void _K33Search_InitEdgeRec(K33SearchContext *context, int e)
 {
     context->E[e].noStraddle = NIL;
     context->E[e].pathConnector = NIL;
-#ifdef INCLUDE_K33_EMBEDDER
+#ifdef INCLUDE_K33SEARCH_EMBEDDER
     context->E[e].EONode = NULL;
 #endif
 }
@@ -679,7 +683,8 @@ int _K33Search_HandleBlockedBicomp(graphP theGraph, int v, int RootVertex, int R
     if (context == NULL)
         return NOTOK;
 
-    if (theGraph->embedFlags == EMBEDFLAGS_SEARCHFORK33)
+    // Special behavior if K33 Search is not only attached, but also enabled
+    if ((theGraph->embedFlags & EMBEDFLAGS_SEARCHFORK33) == EMBEDFLAGS_SEARCHFORK33)
     {
         // If R is the root of a descendant bicomp of v, we push it, but then we know the search for K3,3
         // will be successful and return NONEMBEDDABLE because this condition corresponds to minor A, which
@@ -710,18 +715,19 @@ int _K33Search_EmbedPostprocess(graphP theGraph, int v, int edgeEmbeddingResult)
 {
     int savedEmbedFlags = 0, savedZEROBASEDIO = 0;
 
-    // For K3,3 search, we just return the edge embedding result because the
-    // search result has been obtained already.
-    if (theGraph->embedFlags == EMBEDFLAGS_SEARCHFORK33)
+    // When K3,3 search is not only attached but also enabled, then we perform special behavior.
+    if ((theGraph->embedFlags & EMBEDFLAGS_SEARCHFORK33) == EMBEDFLAGS_SEARCHFORK33)
     {
-        // If the result is K3,3-free, then we need to orient vertices and join bicomps in the main planar embedding
+        // If the result is K3,3-free, then we need to assemble the main planar embedding,
+        // which is a planar subgraph to associate with the root E-node.
+
         if (edgeEmbeddingResult == OK)
         {
-#ifdef INCLUDE_K33_EMBEDDER
+#ifdef INCLUDE_K33SEARCH_EMBEDDER
             // This is currently a constant conditional TRUE, and will be changed to
             // a variable conditional test once code is added to let the caller control
             // whether or not to perform K_{3,3}-free embedding.
-            if (TRUE)
+            if (theGraph->embedFlags & EMBEDFLAGS_SEARCHWITHEMBEDDER)
             {
                 K33SearchContext *context = NULL;
                 gp_FindExtension(theGraph, K33SEARCH_ID, (void *)&context);
@@ -771,20 +777,28 @@ int _K33Search_EmbedPostprocess(graphP theGraph, int v, int edgeEmbeddingResult)
 
 int _K33Search_CheckEmbeddingIntegrity(graphP theGraph, graphP origGraph)
 {
-    if (theGraph->embedFlags == EMBEDFLAGS_SEARCHFORK33)
+    // If K33 search is not only attached but also enabled...
+    if ((theGraph->embedFlags & EMBEDFLAGS_SEARCHFORK33) == EMBEDFLAGS_SEARCHFORK33)
     {
-#ifdef INCLUDE_K33_EMBEDDER
+#ifdef INCLUDE_K33SEARCH_EMBEDDER
         // Given an embedding obstruction tree, we only return OK on the condition that the
         // validity tests are successful
-        K33SearchContext *context = NULL;
-        gp_FindExtension(theGraph, K33SEARCH_ID, (void *)&context);
+        if (theGraph->embedFlags & EMBEDFLAGS_SEARCHWITHEMBEDDER)
+        {
+            K33SearchContext *context = NULL;
+            gp_FindExtension(theGraph, K33SEARCH_ID, (void *)&context);
 
-        if (context != NULL && _K33Search_ValidateEmbeddingObstructionTree(theGraph, context->associatedEONode, origGraph) == OK)
-#endif
+            if (context != NULL && _K33Search_ValidateEmbeddingObstructionTree(theGraph, context->associatedEONode, origGraph) == OK)
+                return OK;
+        }
+        else
             return OK;
+#else
+        return OK;
+#endif
     }
 
-    // When not searching for K3,3, we let the superclass do the work
+    // When not searching for K3,3 homeomorphs, we let the superclass do the work
     else
     {
         K33SearchContext *context = NULL;
@@ -806,7 +820,7 @@ int _K33Search_CheckObstructionIntegrity(graphP theGraph, graphP origGraph)
 {
     // When searching for K3,3, we ensure that theGraph is a subgraph of
     // the original graph and that it contains a K3,3 homeomorph
-    if (theGraph->embedFlags == EMBEDFLAGS_SEARCHFORK33)
+    if ((theGraph->embedFlags & EMBEDFLAGS_SEARCHFORK33) == EMBEDFLAGS_SEARCHFORK33)
     {
         int degrees[5], imageVerts[6];
 

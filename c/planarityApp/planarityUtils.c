@@ -393,7 +393,16 @@ int GetEmbedFlags(char command)
         embedFlags = EMBEDFLAGS_SEARCHFORK23;
         break;
     case '3':
+#ifdef INCLUDE_K33SEARCH_EMBEDDER
+        // Once we get command-line and menu-driven support for distinguishing
+        // at run-time use versus non-use of the embedder, then this code will
+        // be updated accordingly.
+        embedFlags = EMBEDFLAGS_SEARCHFORK33 | EMBEDFLAGS_SEARCHWITHEMBEDDER;
+        // To model C=-3 rather than C=-3e on command-line, comment above and uncomment below
+        // embedFlags = EMBEDFLAGS_SEARCHFORK33;
+#else
         embedFlags = EMBEDFLAGS_SEARCHFORK33;
+#endif
         break;
     case '4':
         embedFlags = EMBEDFLAGS_SEARCHFORK4;

@@ -27,7 +27,7 @@ extern "C"
 
 // Macro to help easily find injection points of code for the K_{3,3} embedder capability
 // Comment out to recompile without the K_{3,3} embedder capability
-#define INCLUDE_K33_EMBEDDER
+#define INCLUDE_K33SEARCH_EMBEDDER
 
 // The initial setting for the edge storage capacity expressed as a constant factor of N,
 // which is the number of vertices in the graph. By default, array E is allocated enough
@@ -59,7 +59,7 @@ extern "C"
             Bit 6: Arc is directed from the containing vertex only
      ********************************************************************/
 
-#ifdef INCLUDE_K33_EMBEDDER
+#ifdef INCLUDE_K33SEARCH_EMBEDDER
 //          Bit 7: Arc is virtual (caller should ensure the twin arc is also set or cleared)
 #endif
 
@@ -171,7 +171,7 @@ extern "C"
         }                                                                                      \
     }
 
-#ifdef INCLUDE_K33_EMBEDDER
+#ifdef INCLUDE_K33SEARCH_EMBEDDER
 #define EDGEFLAG_VIRTUAL_MASK 128
 
 #define gp_GetEdgeVirtual(theGraph, e) (theGraph->E[e].flags & EDGEFLAG_VIRTUAL_MASK)
@@ -215,7 +215,7 @@ extern "C"
             Bit 3: Obstruction type qualifier high (set) versus low (clear)
      ********************************************************************/
 
-#ifdef INCLUDE_K33_EMBEDDER
+#ifdef INCLUDE_K33SEARCH_EMBEDDER
 //            Bit 4: Indicates whether a vertex has been made defunct, such as
 //                   due to being transferred to another graph.
 #endif
@@ -279,7 +279,7 @@ extern "C"
 #define gp_VirtualVertexInRange(theGraph, v) ((v) < theGraph->N + theGraph->NV)
 #endif
 
-#ifdef INCLUDE_K33_EMBEDDER
+#ifdef INCLUDE_K33SEARCH_EMBEDDER
 #define gp_IsBicompRoot(theGraph, v) ((v) > theGraph->N)
 #endif
 
@@ -333,7 +333,7 @@ extern "C"
 #define gp_ResetVertexObstructionType(theGraph, v, type) \
     (theGraph->V[v].flags = (theGraph->V[v].flags & ~VERTEX_OBSTRUCTIONTYPE_MASK) | type)
 
-#ifdef INCLUDE_K33_EMBEDDER
+#ifdef INCLUDE_K33SEARCH_EMBEDDER
 #define VERTEX_DEFUNCT_MASK 16
 
 #define gp_GetVertexDefunct(theGraph, v) (theGraph->V[v].flags & VERTEX_DEFUNCT_MASK)

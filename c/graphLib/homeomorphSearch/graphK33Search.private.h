@@ -14,7 +14,7 @@ extern "C"
 {
 #endif
 
-#ifdef INCLUDE_K33_EMBEDDER
+#ifdef INCLUDE_K33SEARCH_EMBEDDER
 // Declarations for K3,3 embedding obsruction tree nodes
 #define K33SEARCH_EOTYPE_ENODE 0
 #define K33SEARCH_EOTYPE_ONODE 1
@@ -33,7 +33,7 @@ extern "C"
     typedef struct
     {
         int noStraddle, pathConnector;
-#ifdef INCLUDE_K33_EMBEDDER
+#ifdef INCLUDE_K33SEARCH_EMBEDDER
         // Addition to enable edge rec to point to a K33_EONode instance
         K33Search_EONodeP EONode; // default NULL via memset 0 init
 #endif
@@ -45,7 +45,7 @@ extern "C"
     typedef struct
     {
         int separatedDFSChildList, backArcList, mergeBlocker;
-#ifdef INCLUDE_K33_EMBEDDER
+#ifdef INCLUDE_K33SEARCH_EMBEDDER
         // Addition of a variable often and temporarily used to enable
         // internal subroutines to map between a graph's vertex indices
         // and the vertex indices of a subgraph being extracted from it
@@ -63,7 +63,7 @@ extern "C"
         // The graph that this context augments
         graphP theGraph;
 
-#ifdef INCLUDE_K33_EMBEDDER
+#ifdef INCLUDE_K33SEARCH_EMBEDDER
         // Addition to enable edge rec to point to a K33_EONode instance
         K33Search_EONodeP associatedEONode;
 #endif

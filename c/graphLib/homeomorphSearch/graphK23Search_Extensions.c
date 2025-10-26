@@ -125,7 +125,8 @@ void _K23Search_FreeContext(void *pContext)
 
 int _K23Search_HandleBlockedBicomp(graphP theGraph, int v, int RootVertex, int R)
 {
-    if (theGraph->embedFlags == EMBEDFLAGS_SEARCHFORK23)
+    // If the K2,3 homeomorph search is enabled during outerplanar embedding, ...
+    if ((theGraph->embedFlags & EMBEDFLAGS_SEARCHFORK23) == EMBEDFLAGS_SEARCHFORK23)
     {
         // If R is the root of a descendant bicomp of v, we push it, but then we know the search for K2,3
         // will be successful and return NONEMBEDDABLE because this condition corresponds to minor A, which
@@ -141,6 +142,8 @@ int _K23Search_HandleBlockedBicomp(graphP theGraph, int v, int RootVertex, int R
         return _SearchForK23InBicomp(theGraph, v, R);
     }
 
+    // Else the K2,3 extension is attached but the K2,3 search was not enabled during outerplanar embedding,
+    // so we let the base class's method do the work.
     else
     {
         K23SearchContext *context = NULL;
@@ -162,9 +165,10 @@ int _K23Search_EmbedPostprocess(graphP theGraph, int v, int edgeEmbeddingResult)
 {
     int savedEmbedFlags = 0, savedZEROBASEDIO = 0;
 
-    // For K2,3 search, we just return the edge embedding result because the
-    // search result has been obtained already.
-    if (theGraph->embedFlags == EMBEDFLAGS_SEARCHFORK23)
+    // For K2,3 search, we just clear the graph if there was no K2,3 homeomorph then
+    // return the edge embedding result either way. If there was a K2,3 homeomorph,
+    // it was already isolated, and if not, then there is no embedding to postprocess.
+    if ((theGraph->embedFlags & EMBEDFLAGS_SEARCHFORK23) == EMBEDFLAGS_SEARCHFORK23)
     {
         if (edgeEmbeddingResult == OK)
         {
@@ -201,7 +205,10 @@ int _K23Search_EmbedPostprocess(graphP theGraph, int v, int edgeEmbeddingResult)
 
 int _K23Search_CheckEmbeddingIntegrity(graphP theGraph, graphP origGraph)
 {
-    if (theGraph->embedFlags == EMBEDFLAGS_SEARCHFORK23)
+    // If searching for a K2,3 homeomorph, and we get to this method, then
+    // one was not found, and there is not yet a K2,3-free embedding to
+    // check the integrity of, so we just return OK.
+    if ((theGraph->embedFlags & EMBEDFLAGS_SEARCHFORK23) == EMBEDFLAGS_SEARCHFORK23)
     {
         return OK;
     }
@@ -226,9 +233,9 @@ int _K23Search_CheckEmbeddingIntegrity(graphP theGraph, graphP origGraph)
 
 int _K23Search_CheckObstructionIntegrity(graphP theGraph, graphP origGraph)
 {
-    // When searching for K2,3, we ensure that theGraph is a subgraph of
-    // the original graph and that it contains a K2,3 homeomorph
-    if (theGraph->embedFlags == EMBEDFLAGS_SEARCHFORK23)
+    // When searching for K2,3 homeomorph, we ensure that theGraph is a subgraph of
+    // the original graph and that it does indeed contain a K2,3 homeomorph
+    if ((theGraph->embedFlags & EMBEDFLAGS_SEARCHFORK23) == EMBEDFLAGS_SEARCHFORK23)
     {
         int degrees[4], imageVerts[5];
 

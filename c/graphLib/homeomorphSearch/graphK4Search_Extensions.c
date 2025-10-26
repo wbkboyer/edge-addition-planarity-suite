@@ -328,7 +328,8 @@ int _K4Search_HandleBlockedBicomp(graphP theGraph, int v, int RootVertex, int R)
     if (context == NULL)
         return NOTOK;
 
-    if (theGraph->embedFlags == EMBEDFLAGS_SEARCHFORK4)
+    // If the search is not only attached but also enabled during embedding, then...
+    if ((theGraph->embedFlags & EMBEDFLAGS_SEARCHFORK4) == EMBEDFLAGS_SEARCHFORK4)
     {
         int RetVal = OK;
 
@@ -410,9 +411,11 @@ int _K4Search_EmbedPostprocess(graphP theGraph, int v, int edgeEmbeddingResult)
 {
     int savedEmbedFlags = 0, savedZEROBASEDIO = 0;
 
-    // For K4 search, we just return the edge embedding result because the
-    // search result has been obtained already.
-    if (theGraph->embedFlags == EMBEDFLAGS_SEARCHFORK4)
+    // For K4 search, we just clear out the embedding if no K4 hoemomorph was found
+    // and then return the edge embedding result because if a K4 homeomorphwas found,
+    // then it was already isolated, and if one wasn't found, then the only real output
+    // at this time is the OK to indicate that no K4 homeomorph was found.
+    if ((theGraph->embedFlags & EMBEDFLAGS_SEARCHFORK4) == EMBEDFLAGS_SEARCHFORK4)
     {
         if (edgeEmbeddingResult == OK)
         {
@@ -449,7 +452,11 @@ int _K4Search_EmbedPostprocess(graphP theGraph, int v, int edgeEmbeddingResult)
 
 int _K4Search_CheckEmbeddingIntegrity(graphP theGraph, graphP origGraph)
 {
-    if (theGraph->embedFlags == EMBEDFLAGS_SEARCHFORK4)
+    // If not only is the K4 search extension attached, but also it is
+    // enabled in then embedding process, then... right now there is no
+    // embedding of a K4-free graph to check the embedding integrity of,
+    // so we just return OK.
+    if ((theGraph->embedFlags & EMBEDFLAGS_SEARCHFORK4) == EMBEDFLAGS_SEARCHFORK4)
     {
         return OK;
     }
@@ -476,7 +483,7 @@ int _K4Search_CheckObstructionIntegrity(graphP theGraph, graphP origGraph)
 {
     // When searching for K4, we ensure that theGraph is a subgraph of
     // the original graph and that it contains a K4 homeomorph
-    if (theGraph->embedFlags == EMBEDFLAGS_SEARCHFORK4)
+    if ((theGraph->embedFlags & EMBEDFLAGS_SEARCHFORK4) == EMBEDFLAGS_SEARCHFORK4)
     {
         int degrees[4], imageVerts[4];
 

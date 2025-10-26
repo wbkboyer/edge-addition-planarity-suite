@@ -64,7 +64,7 @@ extern int _AddAndMarkUnembeddedEdges(graphP theGraph);
 
 extern void _K33Search_InitEdgeRec(K33SearchContext *context, int e);
 
-#ifdef INCLUDE_K33_EMBEDDER
+#ifdef INCLUDE_K33SEARCH_EMBEDDER
 // Imports for K_{3,3}-free embedding
 extern K33Search_EONodeP _K33Search_EONode_New(int theEOType, graphP theSubgraph, int theSubgraphOwner);
 extern void _K33Search_EONode_Free(K33Search_EONodeP *pEONode);
@@ -130,7 +130,7 @@ int _SearchForK33InBicomp(graphP theGraph, K33SearchContext *context, int v, int
 
     if (theGraph->IC.minorType & (MINORTYPE_A | MINORTYPE_B | MINORTYPE_C | MINORTYPE_D))
     {
-#ifdef INCLUDE_K33_EMBEDDER
+#ifdef INCLUDE_K33SEARCH_EMBEDDER
         // Found Minor A, B, C, or D so eliminate the embedding obstruction tree because the graph is not K3,3-free
         _K33Search_EONode_Free(&context->associatedEONode);
 #endif
@@ -180,7 +180,7 @@ int _SearchForK33InBicomp(graphP theGraph, K33SearchContext *context, int v, int
         (IC->uz < MAX(IC->ux, IC->uy) && IC->ux != IC->uy) ||
         (IC->x != IC->px || IC->y != IC->py))
     {
-#ifdef INCLUDE_K33_EMBEDDER
+#ifdef INCLUDE_K33SEARCH_EMBEDDER
         // Found Minor E1, E2, E3, or E4 so eliminate the embedding obstruction tree because the graph is not K3,3-free
         _K33Search_EONode_Free(&context->associatedEONode);
 #endif
@@ -540,7 +540,7 @@ int _FinishIsolatorContextInitialization(graphP theGraph, K33SearchContext *cont
 {
     isolatorContextP IC = &theGraph->IC;
 
-#ifdef INCLUDE_K33_EMBEDDER
+#ifdef INCLUDE_K33SEARCH_EMBEDDER
     // Found one of Minors E1 through E7 so eliminate the embedding obstruction tree because the graph is not K3,3-free
     _K33Search_EONode_Free(&context->associatedEONode);
 #endif
@@ -1244,7 +1244,7 @@ int _ReduceBicomp(graphP theGraph, K33SearchContext *context, int R)
     isolatorContextP IC = &theGraph->IC;
     int min, max, A, A_edge, B, B_edge;
     int rxType, xwType, wyType, yrType, xyType;
-#ifdef INCLUDE_K33_EMBEDDER
+#ifdef INCLUDE_K33SEARCH_EMBEDDER
     K33Search_EONodeP newONode = NULL;
 #endif
 
@@ -1254,23 +1254,26 @@ int _ReduceBicomp(graphP theGraph, K33SearchContext *context, int R)
     if (_OrientVerticesInBicomp(theGraph, R, 0) != OK)
         return NOTOK;
 
-#ifdef INCLUDE_K33_EMBEDDER
-    // We need a new O-node to represent the K5 homeomorph, and to attach its child E-nodes that will
-    // represent the planar subgraphs we extract for Beta_vx, Beta_vy, Beta_wx, Beta_wy, and Beta_xy
-    if (_K33Search_EONode_NewONode(theGraph, &newONode) != OK)
-        return NOTOK;
-
-    if (_K33Search_ExtractEmbeddingSubgraphs(theGraph, R, newONode) != OK)
+#ifdef INCLUDE_K33SEARCH_EMBEDDER
+    if (theGraph->embedFlags & EMBEDFLAGS_SEARCHWITHEMBEDDER)
     {
-        _K33Search_EONode_Free(&newONode);
-        return NOTOK;
-    }
+        // We need a new O-node to represent the K5 homeomorph, and to attach its child E-nodes that will
+        // represent the planar subgraphs we extract for Beta_vx, Beta_vy, Beta_wx, Beta_wy, and Beta_xy
+        if (_K33Search_EONode_NewONode(theGraph, &newONode) != OK)
+            return NOTOK;
 
-    // Once we finish constructing the O-node and E-nodes, and their representative subgraphs, we
-    // must clear the visited flags and re-mark the highest xy path as this is a precondition of
-    // the code below that performs the bicomp reduction
-    if (_ClearVisitedFlagsInBicomp(theGraph, R) != OK || _MarkHighestXYPath(theGraph) != OK)
-        return NOTOK;
+        if (_K33Search_ExtractEmbeddingSubgraphs(theGraph, R, newONode) != OK)
+        {
+            _K33Search_EONode_Free(&newONode);
+            return NOTOK;
+        }
+
+        // Once we finish constructing the O-node and E-nodes, and their representative subgraphs, we
+        // must clear the visited flags and re-mark the highest xy path as this is a precondition of
+        // the code below that performs the bicomp reduction
+        if (_ClearVisitedFlagsInBicomp(theGraph, R) != OK || _MarkHighestXYPath(theGraph) != OK)
+            return NOTOK;
+    }
 #endif
 
     /* The reduced edges start with a default type of 'tree' edge. The
@@ -1459,10 +1462,13 @@ int _ReduceBicomp(graphP theGraph, K33SearchContext *context, int R)
     if (_ReduceXYPathToEdge(theGraph, context, IC->x, IC->y, xyType) != OK)
         return NOTOK;
 
-#ifdef INCLUDE_K33_EMBEDDER
-    // Make the new O-node a child of the root E-node, via making an edge of the root embedding point to it
-    if (_K33Search_AttachONodeAsChildOfRoot(theGraph, newONode) != OK)
-        return NOTOK;
+#ifdef INCLUDE_K33SEARCH_EMBEDDER
+    if (theGraph->embedFlags & EMBEDFLAGS_SEARCHWITHEMBEDDER)
+    {
+        // Make the new O-node a child of the root E-node, via making an edge of the root embedding point to it
+        if (_K33Search_AttachONodeAsChildOfRoot(theGraph, newONode) != OK)
+            return NOTOK;
+    }
 #endif
 
     return OK;
@@ -1588,7 +1594,7 @@ int _ReduceExternalFacePathToEdge(graphP theGraph, K33SearchContext *context, in
     e = gp_GetFirstArc(theGraph, u);
     context->E[e].pathConnector = v;
     gp_SetEdgeType(theGraph, e, _ComputeArcType(theGraph, u, x, edgeType));
-#ifdef INCLUDE_K33_EMBEDDER
+#ifdef INCLUDE_K33SEARCH_EMBEDDER
     // Explicitly mark the edge as being virtual
     gp_SetEdgeVirtual(theGraph, e);
 #endif
@@ -1596,7 +1602,7 @@ int _ReduceExternalFacePathToEdge(graphP theGraph, K33SearchContext *context, in
     e = gp_GetLastArc(theGraph, x);
     context->E[e].pathConnector = w;
     gp_SetEdgeType(theGraph, e, _ComputeArcType(theGraph, x, u, edgeType));
-#ifdef INCLUDE_K33_EMBEDDER
+#ifdef INCLUDE_K33SEARCH_EMBEDDER
     // Explicitly mark the edge as being virtual
     gp_SetEdgeVirtual(theGraph, e);
 #endif
@@ -1662,7 +1668,7 @@ int _ReduceXYPathToEdge(graphP theGraph, K33SearchContext *context, int u, int x
     e = gp_GetNextArc(theGraph, e);
     context->E[e].pathConnector = v;
     gp_SetEdgeType(theGraph, e, _ComputeArcType(theGraph, u, x, edgeType));
-#ifdef INCLUDE_K33_EMBEDDER
+#ifdef INCLUDE_K33SEARCH_EMBEDDER
     // Explicitly mark the edge as being virtual
     gp_SetEdgeVirtual(theGraph, e);
 #endif
@@ -1671,7 +1677,7 @@ int _ReduceXYPathToEdge(graphP theGraph, K33SearchContext *context, int u, int x
     e = gp_GetNextArc(theGraph, e);
     context->E[e].pathConnector = w;
     gp_SetEdgeType(theGraph, e, _ComputeArcType(theGraph, x, u, edgeType));
-#ifdef INCLUDE_K33_EMBEDDER
+#ifdef INCLUDE_K33SEARCH_EMBEDDER
     // Explicitly mark the edge as being virtual
     gp_SetEdgeVirtual(theGraph, e);
 #endif

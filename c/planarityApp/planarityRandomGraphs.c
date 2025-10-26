@@ -352,17 +352,20 @@ int RandomGraphs(char command, int NumGraphs, int SizeOfGraphs, char *outfileNam
     }
 
     // Report statistics for subgraph homeomorphism algorithms
-    else if (embedFlags == EMBEDFLAGS_SEARCHFORK23)
+    // The bitwise-and is used to filter out homeomorph search configuration flags like EMBEDFLAGS_SEARCHWITHEMBEDDER
+    // Equality test still used afterward to futureproof comparisons between the search and any underlying flags
+    // that are part of the search but also part of other algorithms, like EMBEDFLAGS_PLANAR and EMBEDFLAGS_OUTPERPLANAR
+    else if ((embedFlags & EMBEDFLAGS_SEARCHFORK23) == EMBEDFLAGS_SEARCHFORK23)
     {
         sprintf(messageContents, "Of the generated graphs, %d did not contain a K_{2,3} homeomorph as a subgraph.\n", MainStatistic);
         Message(messageContents);
     }
-    else if (embedFlags == EMBEDFLAGS_SEARCHFORK33)
+    else if ((embedFlags & EMBEDFLAGS_SEARCHFORK33) == EMBEDFLAGS_SEARCHFORK33)
     {
         sprintf(messageContents, "Of the generated graphs, %d did not contain a K_{3,3} homeomorph as a subgraph.\n", MainStatistic);
         Message(messageContents);
     }
-    else if (embedFlags == EMBEDFLAGS_SEARCHFORK4)
+    else if ((embedFlags & EMBEDFLAGS_SEARCHFORK4) == EMBEDFLAGS_SEARCHFORK4)
     {
         sprintf(messageContents, "Of the generated graphs, %d did not contain a K_4 homeomorph as a subgraph.\n", MainStatistic);
         Message(messageContents);
