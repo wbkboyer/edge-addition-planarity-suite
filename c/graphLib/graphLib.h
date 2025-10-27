@@ -27,7 +27,7 @@ extern "C"
 #include "planarityRelated/graphDrawPlanar.h"
 
     // This is the main location for the project and shared library version numbering.
-    // Changes here must be mirrored in configure.ac
+    // Changes to the project version must be mirrored in AC_INIT in configure.ac
     //
     // The overall project version numbering format is major.minor.maintenance.tweak
     // Major is for an overhaul (e.g. many features, data structure change, change of backward compatibility)
@@ -36,18 +36,19 @@ extern "C"
     // Tweak is for a non-functional revision (e.g. change of build scripts or testing code, user-facing string changes)
 
 #define GP_PROJECTVERSION_MAJOR 4
-#define GP_PROJECTVERSION_MINOR 0
-#define GP_PROJECTVERSION_MAINT 1
+#define GP_PROJECTVERSION_MINOR 1
+#define GP_PROJECTVERSION_MAINT 0
 #define GP_PROJECTVERSION_TWEAK 0
 
     char *gp_GetProjectVersionFull(void);
 
-// Any change to the project version numbers should also affect the
-// shared library version numbers below.
+// Changes to code in the graphLib subdirectory should affect the project version numbers above as well as
+// the libPlanarity shared library version numbers below.
 //
-// See configure.ac for how to update these version numbers
+// See configure.ac for how to update these version numbers, and ensure that the changes made to
+// LT_CURRENT, LT_REVISION, and LT_AGE in configure.ac are also reflected in the following three:
 #define GP_LIBPLANARITYVERSION_CURRENT 3
-#define GP_LIBPLANARITYVERSION_REVISION 0
+#define GP_LIBPLANARITYVERSION_REVISION 1
 #define GP_LIBPLANARITYVERSION_AGE 1
 
     char *gp_GetLibPlanarityVersionFull(void);
