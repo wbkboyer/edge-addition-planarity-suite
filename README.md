@@ -46,13 +46,13 @@ The result is a validated `planarity-N.N.N.N.tar.gz` distribution, where `N.N.N.
 
 If you have done the steps to set up the development environment and work with the code, then you can make and run the software using the development environment, so you don't necessarily need to make or run the software using the process below.
 
-You also don't necessarily need to `make` and `make install` the planarity software on Linux if you are able to get it using `sudo apt planarity` (i.e. using a Debian-based Linux distribution, which uses [`apt`](https://en.wikipedia.org/wiki/APT_(software)) for package management)
+You also don't necessarily need to `make` and `make install` the planarity software on Linux if you are able to get it using `sudo apt planarity` (e.g., using a Debian-based Linux distribution, which uses [`apt`](https://en.wikipedia.org/wiki/APT_(software)) for package management).
 
 However, you may have only downloaded the distribution (i.e., `planarity-N.N.N.N.tar.gz`) from a Release tag of this project. Once you have decompressed the distribution into a directory, you can make it by getting into `bash` (e.g., on Windows, open the start menu and start typing "MSYS2 UCRT64" to open the correct terminal app) and then entering the following commands: 
 1. `./configure`
 2. `make`
 
-At this point, the `planarity` executable can be run from within the distribution directory. For example, on Windows, go to the `.libs/` subdirectory containing the `planarity` executable and the `libplanarity` DLL and run `planarity -test ../c/samples` on the command-line. 
+At this point, the `planarity` executable can be run from within the distribution directory. For example, on Windows, use the command-line to run `planarity -test ./c/samples` (this calls the real `planarity.exe` in the `.libs/` subdirectory). 
 
 On Linux, the planarity program can also be installed by entering `sudo make install` on the command-line. Note that the `libplanarity` shared object and symlinks will be installed to `/usr/local/lib` so it will be necessary to set `LD_LIBRARY_PATH` accordingly. For one session, this can be done with `export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib`. To make it more permanent, you could use:
 1. Create a new file `/etc/ld.so.conf.d/planarity.conf` containing `/usr/local/lib`
