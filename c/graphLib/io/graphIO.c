@@ -539,7 +539,10 @@ int _ReadGraph(graphP theGraph, strOrFileP inputContainer)
                     RetVal = NOTOK;
                 else
                 {
-                    // FIXME: how do I distinguish between "there's no more content on input stream" and "I've hit an error state"
+                    // TODO: how do I distinguish between "there's no more
+                    // content on input stream" and "I've hit an error state"?
+                    // ISO standard for fgets() requires errno to be set:
+                    // https://pubs.opengroup.org/onlinepubs/9699919799/functions/fgets.html
                     while (sf_fgets(lineBuff, MAXLINE, inputContainer) != NULL)
                     {
                         if (sb_ConcatString(extraData, lineBuff) != OK)
