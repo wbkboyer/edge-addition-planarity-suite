@@ -119,10 +119,6 @@ int SpecificGraph(
         //          gp_Write(theGraph, "debug.before.txt", WRITE_DEBUGINFO);
         //          gp_SortVertices(theGraph);
 
-        // FIXME: Nothing is done with this Result other than pass to
-        // gp_TestEmbedResultIntegrity() for confirmation... Should we early-out
-        // if Result == NOTOK, i.e. only run gp_TestEmbedResultIntegrity()
-        // if Result of gp_Embed() is OK/NONEMBEDDABLE?
         Result = gp_Embed(theGraph, embedFlags);
         platform_GetTime(end);
         Result = gp_TestEmbedResultIntegrity(theGraph, origGraph, Result);
@@ -135,8 +131,6 @@ int SpecificGraph(
     }
 
     // Write what the algorithm determined and how long it took
-    // FIXME: Do I need to augment WriteAlgorithmResults() to incorporate the
-    // modifier, if supplied?
     WriteAlgorithmResults(theGraph, Result, command, start, end, infileName);
 
     // Free the graph obtained for integrity checking.
@@ -231,67 +225,4 @@ int SpecificGraph(
     // Flush any remaining message content to the user, and return the result
     FlushConsole(stdout);
     return Result;
-}
-
-/****************************************************************************
- * WriteAlgorithmResults()
- ****************************************************************************/
-
-// FIXME: Should WriteAlgorithmResults() also accept modifier char, and if so,
-// then how should it change the output?
-
-// FIXME: Should WriteAlgorithmResults() be moved into planarityUtils.c, since
-// it's used by RandomGraph() as well?
-
-void WriteAlgorithmResults(graphP theGraph, int Result, char command, platform_time start, platform_time end, char const *infileName)
-{
-    char const *messageFormat = NULL;
-    char messageContents[MAXLINE + 1];
-    int charsAvailForStr = 0;
-
-    if (infileName)
-    {
-        messageFormat = "The graph \"%.*s\" ";
-        charsAvailForStr = (int)(MAXLINE - strlen(messageFormat));
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat-nonliteral"
-        sprintf(messageContents, messageFormat, charsAvailForStr, infileName);
-#pragma GCC diagnostic pop
-    }
-    else
-        sprintf(messageContents, "The graph ");
-    Message(messageContents);
-
-    switch (command)
-    {
-    case 'p':
-        sprintf(messageContents, "is%s planar.\n", Result == OK ? "" : " not");
-        break;
-    case 'd':
-        sprintf(messageContents, "is%s planar.\n", Result == OK ? "" : " not");
-        break;
-    case 'o':
-        sprintf(messageContents, "is%s outerplanar.\n", Result == OK ? "" : " not");
-        break;
-    case '2':
-        sprintf(messageContents, "has %s subgraph homeomorphic to K_{2,3}.\n", Result == OK ? "no" : "a");
-        break;
-    case '3':
-        // FIXME: Should we indicate if K33CERT modifier was specified in this message?
-        sprintf(messageContents, "has %s subgraph homeomorphic to K_{3,3}.\n", Result == OK ? "no" : "a");
-        break;
-    case '4':
-        sprintf(messageContents, "has %s subgraph homeomorphic to K_4.\n", Result == OK ? "no" : "a");
-        break;
-    default:
-        sprintf(messageContents, "has not been processed due to unrecognized command.\n");
-        break;
-    }
-    Message(messageContents);
-
-    // FIXME: Should message include any info about the graph algorithm extension
-    // being run in a particular mode dictated by modifier?
-    sprintf(messageContents, "Algorithm '%s' executed in %.3lf seconds.\n",
-            GetAlgorithmName(command), platform_GetDuration(start, end));
-    Message(messageContents);
 }

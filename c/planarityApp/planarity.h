@@ -14,6 +14,10 @@ extern "C"
 
 #include "../graphLib/graphLib.h"
 
+#define FILENAMEMAXLENGTH 128
+#define ALGORITHMNAMEMAXLENGTH 32
+#define SUFFIXMAXLENGTH 32
+
     char const *GetProjectTitle(void);
     char const *GetAlgorithmFlags(void);
     char const *GetAlgorithmSpecifiers(void);
@@ -48,6 +52,7 @@ extern "C"
     void Reconfigure(void);
 
     /* Low-level Utilities */
+    int GetLineFromStdin(char *lineBuff, int lineBuffSize);
     void FlushConsole(FILE *f);
     void Prompt(char const *message);
 

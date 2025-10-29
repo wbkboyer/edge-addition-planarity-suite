@@ -31,6 +31,10 @@ int commandLine(int argc, char *argv[])
 {
     int Result = OK;
 
+#ifdef DEBUG
+    char lineBuff[MAXLINE + 1];
+#endif
+
     if (argc >= 3 && strcmp(argv[2], "-q") == 0)
         setQuietModeSetting(TRUE);
 
@@ -82,8 +86,11 @@ int commandLine(int argc, char *argv[])
     // window stays open until the user proceeds.
     printf("\n\tPress return key to exit...\n");
     fflush(stdout);
-    fflush(stdin);
-    getc(stdin);
+    if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
+    {
+        ErrorMessage("Unable to fetch from stdin; exiting.\n");
+        Result = NOTOK;
+    }
 #endif
     return Result == OK ? 0 : (Result == NONEMBEDDABLE ? 1 : -1);
 }
@@ -639,6 +646,9 @@ int callRandomGraphs(int argc, char *argv[])
         offset = 1;
     }
 
+    if (argc > (6 + offset))
+        return -1;
+
     Choice = argv[2 + offset];
     NumGraphs = atoi(argv[3 + offset]);
     SizeOfGraphs = atoi(argv[4 + offset]);
@@ -671,6 +681,9 @@ int callSpecificGraph(int argc, char *argv[])
         offset = 1;
     }
 
+    if (argc > (6 + offset))
+        return -1;
+
     Choice = argv[2 + offset];
     infileName = argv[3 + offset];
     outfileName = argv[4 + offset];
@@ -700,6 +713,9 @@ int callRandomMaxPlanarGraph(int argc, char *argv[])
         offset = 1;
     }
 
+    if (argc > (5 + offset))
+        return -1;
+
     numVertices = atoi(argv[2 + offset]);
     outfileName = argv[3 + offset];
     if (argc == 5 + offset)
@@ -727,6 +743,9 @@ int callRandomNonplanarGraph(int argc, char *argv[])
             return -1;
         offset = 1;
     }
+
+    if (argc > (5 + offset))
+        return -1;
 
     numVertices = atoi(argv[2 + offset]);
     outfileName = argv[3 + offset];
@@ -758,6 +777,9 @@ int callTransformGraph(int argc, char *argv[])
             return -1;
         offset = 1;
     }
+
+    if (argc > (5 + offset))
+        return -1;
 
     commandString = argv[2 + offset];
 
@@ -794,6 +816,9 @@ int callTestAllGraphs(int argc, char *argv[])
             return -1;
         offset = 1;
     }
+
+    if (argc > (5 + offset))
+        return -1;
 
     commandString = argv[2 + offset];
 

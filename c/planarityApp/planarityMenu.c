@@ -14,6 +14,7 @@ void TestAllGraphsMenu(void);
 
 int menu(void)
 {
+    char lineBuff[MAXLINE + 1];
     char commandString[3];
     char command = '\0';
 
@@ -32,8 +33,13 @@ int menu(void)
             "\n");
 
         Prompt("Enter Choice: ");
-        fflush(stdin);
-        scanf(" %2s", commandString);
+        if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
+            strlen(lineBuff) == 0 || strlen(lineBuff) > 2 ||
+            sscanf(lineBuff, " %2s", commandString) != 1)
+        {
+            ErrorMessage("Invalid input; please retry.\n");
+            continue;
+        }
 
         if (GetCommandAndOptionalModifier(commandString, &command, NULL) != OK)
         {
@@ -88,14 +94,16 @@ int menu(void)
 
         if (command != 'r' && command != 'q')
         {
-            Prompt("\nPress a key then hit ENTER to continue...");
-            fflush(stdin);
-            scanf(" %*c");
-            fflush(stdin);
+            Prompt("\nPress return key to continue...");
+            if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
+            {
+                ErrorMessage("Unable to fetch from stdin; exiting.\n");
+                return -1;
+            }
+
             Message("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
             FlushConsole(stdout);
         }
-
     } while (command != 'q');
 
     // Certain debuggers don't terminate correctly with pending output content
@@ -109,42 +117,48 @@ void TransformGraphMenu(void)
 {
     int Result = OK;
 
-    int numCharsToReprMAXLINE = 0;
+    int numCharsToReprFILENAMEMAXLENGTH = 0;
     char const *fileNameFormatFormat = " %%%d[^\r\n]";
     char *fileNameFormat = NULL;
-    char infileName[MAXLINE + 1];
-    char outfileName[MAXLINE + 1];
+    char infileName[FILENAMEMAXLENGTH + 1];
+    char outfileName[FILENAMEMAXLENGTH + 1];
     char outputFormat = '\0';
     char commandStr[4];
+    char lineBuff[MAXLINE + 1];
 
     infileName[0] = outfileName[0] = commandStr[0] = '\0';
 
-    if (GetNumCharsToReprInt(MAXLINE, &numCharsToReprMAXLINE) != OK)
+    if (GetNumCharsToReprInt(FILENAMEMAXLENGTH, &numCharsToReprFILENAMEMAXLENGTH) != OK)
     {
-        ErrorMessage("Unable to determine number of characters required to represent MAXLINE.\n");
+        ErrorMessage("Unable to determine number of characters required to represent FILENAMEMAXLENGTH.\n");
         return;
     }
 
-    fileNameFormat = (char *)malloc((strlen(fileNameFormatFormat) + numCharsToReprMAXLINE + 1) * sizeof(char));
+    fileNameFormat = (char *)malloc((strlen(fileNameFormatFormat) + numCharsToReprFILENAMEMAXLENGTH + 1) * sizeof(char));
     if (fileNameFormat == NULL)
     {
-        ErrorMessage("Unable to allocate memory.\n");
+        ErrorMessage("Unable to allocate memory for filename format string.\n");
         return;
     }
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
-    sprintf(fileNameFormat, fileNameFormatFormat, MAXLINE);
+    sprintf(fileNameFormat, fileNameFormatFormat, FILENAMEMAXLENGTH);
 #pragma GCC diagnostic pop
 
     do
     {
         Prompt("Enter input filename:\n");
-        fflush(stdin);
+        if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
+            strlen(lineBuff) == 0 ||
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
-        scanf(fileNameFormat, infileName);
+            sscanf(lineBuff, fileNameFormat, infileName) != 1)
 #pragma GCC diagnostic pop
+        {
+            ErrorMessage("Unable to read input filename.\n");
+            continue;
+        }
 
         if (strncmp(infileName, "stdin", strlen("stdin")) == 0)
         {
@@ -156,19 +170,29 @@ void TransformGraphMenu(void)
     do
     {
         Prompt("Enter output filename, or type \"stdout\" to output to console:\n");
-        fflush(stdin);
+        if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
+            strlen(lineBuff) == 0 ||
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
-        scanf(fileNameFormat, outfileName);
+            sscanf(lineBuff, fileNameFormat, outfileName) != 1)
 #pragma GCC diagnostic pop
+        {
+            ErrorMessage("Unable to read output filename.\n");
+            continue;
+        }
     } while (strlen(outfileName) == 0);
 
     do
     {
         Message(GetSupportedOutputChoices());
         Prompt("Enter output format: ");
-        fflush(stdin);
-        scanf(" %c", &outputFormat);
+        if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
+            strlen(lineBuff) != 1 ||
+            sscanf(lineBuff, " %c", &outputFormat) != 1)
+        {
+            ErrorMessage("Invalid choice for output format.\n");
+            continue;
+        }
         outputFormat = (char)tolower(outputFormat);
         if (strchr(GetSupportedOutputFormats(), outputFormat))
             sprintf(commandStr, "-%c", outputFormat);
@@ -186,40 +210,46 @@ void TestAllGraphsMenu(void)
 {
     int Result = OK;
 
-    int numCharsToReprMAXLINE = 0;
+    int numCharsToReprFILENAMEMAXLENGTH = 0;
     char const *fileNameFormatFormat = " %%%d[^\r\n]";
     char *fileNameFormat = NULL;
     char infileName[MAXLINE + 1];
     char outfileName[MAXLINE + 1];
     char commandString[3];
+    char lineBuff[MAXLINE + 1];
 
     infileName[0] = outfileName[0] = '\0';
 
-    if (GetNumCharsToReprInt(MAXLINE, &numCharsToReprMAXLINE) != OK)
+    if (GetNumCharsToReprInt(FILENAMEMAXLENGTH, &numCharsToReprFILENAMEMAXLENGTH) != OK)
     {
-        ErrorMessage("Unable to determine number of characters required to represent MAXLINE.\n");
+        ErrorMessage("Unable to determine number of characters required to represent FILENAMEMAXLENGTH.\n");
         return;
     }
 
-    fileNameFormat = (char *)malloc((strlen(fileNameFormatFormat) + numCharsToReprMAXLINE + 1) * sizeof(char));
+    fileNameFormat = (char *)malloc((strlen(fileNameFormatFormat) + numCharsToReprFILENAMEMAXLENGTH + 1) * sizeof(char));
     if (fileNameFormat == NULL)
     {
-        ErrorMessage("Unable to allocate memory.\n");
+        ErrorMessage("Unable to allocate memory for filename format string.\n");
         return;
     }
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
-    sprintf(fileNameFormat, fileNameFormatFormat, MAXLINE);
+    sprintf(fileNameFormat, fileNameFormatFormat, FILENAMEMAXLENGTH);
 #pragma GCC diagnostic pop
 
     do
     {
         Prompt("Enter input filename:\n");
-        fflush(stdin);
+        if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
+            strlen(lineBuff) == 0 ||
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
-        scanf(fileNameFormat, infileName);
+            sscanf(lineBuff, fileNameFormat, infileName) != 1)
 #pragma GCC diagnostic pop
+        {
+            ErrorMessage("Unable to read input filename.\n");
+            continue;
+        }
 
         if (strncmp(infileName, "stdin", strlen("stdin")) == 0)
         {
@@ -231,20 +261,29 @@ void TestAllGraphsMenu(void)
     do
     {
         Prompt("Enter output filename, or type \"stdout\" to output to console:\n");
-        fflush(stdin);
+        if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
+            strlen(lineBuff) == 0 ||
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
-        scanf(fileNameFormat, outfileName);
+            sscanf(lineBuff, fileNameFormat, outfileName) != 1)
 #pragma GCC diagnostic pop
+        {
+            ErrorMessage("Unable to read output filename.\n");
+            continue;
+        }
     } while (strlen(outfileName) == 0);
 
     do
     {
         Message(GetAlgorithmSpecifiers());
-
         Prompt("Enter algorithm specifier (with optional modifier): ");
-        fflush(stdin);
-        scanf(" %2s", commandString);
+        if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
+            strlen(lineBuff) == 0 || strlen(lineBuff) > 2 ||
+            sscanf(lineBuff, " %2s", commandString) != 1)
+        {
+            ErrorMessage("Unable to command and optional modifier.\n");
+            continue;
+        }
     } while (strlen(commandString) == 0);
 
     Result = TestAllGraphs(commandString, infileName, outfileName, NULL);

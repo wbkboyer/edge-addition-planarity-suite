@@ -19,14 +19,21 @@ char Mode = 'r',
 
 void Reconfigure(void)
 {
-    fflush(stdin);
+    char const *reconfigureErrorMessage = "Invalid input; please retry reconfiguration.\n";
 
+    char lineBuff[MAXLINE + 1];
     Prompt("\nDo you want to \n"
            "  Randomly generate graphs (r),\n"
            "  Specify a graph (s),\n"
            "  Randomly generate a maximal planar graph (m), or\n"
-           "  Randomly generate a non-planar graph (n)? ");
-    scanf(" %c", &Mode);
+           "  Randomly generate a non-planar graph (n)?\n\t");
+    if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
+        strlen(lineBuff) != 1 ||
+        sscanf(lineBuff, " %c", &Mode) != 1)
+    {
+        ErrorMessage(reconfigureErrorMessage);
+        return;
+    }
 
     Mode = (char)tolower(Mode);
     if (!strchr("rsmn", Mode))
@@ -37,29 +44,88 @@ void Reconfigure(void)
         Message("\nNOTE: The directories for the graphs you want must exist.\n\n");
 
         Prompt("Do you want original graphs in directory 'random'? (y/n) ");
-        scanf(" %c", &OrigOut);
+        if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
+            strlen(lineBuff) != 1 ||
+            sscanf(lineBuff, " %c", &OrigOut) != 1)
+        {
+            ErrorMessage(reconfigureErrorMessage);
+            return;
+        }
 
         if (tolower(OrigOut) == 'y')
         {
             Prompt("Do you want to output generated graphs to Adjacency List (last 10 only) or to G6 (all)? (a/g) ");
-            scanf(" %c", &OrigOutFormat);
+            if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
+                strlen(lineBuff) != 1 ||
+                sscanf(lineBuff, " %c", &OrigOutFormat) != 1)
+            {
+                ErrorMessage(reconfigureErrorMessage);
+                return;
+            }
         }
 
         Prompt("Do you want adj. matrix of embeddable graphs in directory 'embedded' (last 10 max))? (y/n) ");
-        scanf(" %c", &EmbeddableOut);
+        if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
+            strlen(lineBuff) != 1 ||
+            sscanf(lineBuff, " %c", &EmbeddableOut) != 1)
+        {
+            ErrorMessage(reconfigureErrorMessage);
+            return;
+        }
 
         Prompt("Do you want adj. matrix of obstructed graphs in directory 'obstructed' (last 10 max)? (y/n) ");
-        scanf(" %c", &ObstructedOut);
+        if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
+            ferror(stdin) || strlen(lineBuff) != 1 ||
+            sscanf(lineBuff, " %c", &ObstructedOut) != 1)
+        {
+            ErrorMessage(reconfigureErrorMessage);
+            return;
+        }
 
         Prompt("Do you want adjacency list format of embeddings in directory 'adjlist' (last 10 max)? (y/n) ");
-        scanf(" %c", &AdjListsForEmbeddingsOut);
+        if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
+            strlen(lineBuff) != 1 ||
+            sscanf(lineBuff, " %c", &AdjListsForEmbeddingsOut) != 1)
+        {
+            ErrorMessage(reconfigureErrorMessage);
+            return;
+        }
     }
 
     FlushConsole(stdout);
 }
 
+int GetLineFromStdin(char *lineBuff, int lineBuffSize)
+{
+    if (lineBuff == NULL)
+    {
+        ErrorMessage("Line buffer to populate is NULL.\n");
+        return NOTOK;
+    }
+
+    lineBuff[0] = '\0';
+    if (fgets(lineBuff, lineBuffSize, stdin) == NULL && ferror(stdin))
+    {
+        ErrorMessage("Call to fgets() from stdin failed.\n");
+        return NOTOK;
+    }
+
+    // From https://stackoverflow.com/a/28462221, strcspn finds the index of the
+    // first char in charset; this way, I replace the char at that index with
+    // the null-terminator
+    // N.B. See https://cplusplus.com/reference/cstring/strcspn/ : if no chars
+    // in str2 appear in str1, will return strlen(str1), so this line is a no-op
+    lineBuff[strcspn(lineBuff, "\n\r")] = '\0'; // works for LF, CR, CRLF, LFCR, ...
+
+    return OK;
+}
+
 void FlushConsole(FILE *f)
 {
+    // N.B. fflush(stdin) constitutes undefined behaviour; see:
+    // https://c-faq.com/stdio/stdinflush.html
+    if (f == stdin)
+        return;
     fflush(f);
 }
 
@@ -346,9 +412,6 @@ int BinaryFilesEqual(char *file1Name, char *file2Name)
 
 char const *GetAlgorithmFlags(void)
 {
-    // FIXME: How do we want to indicate to users that they may supply an
-    // optional modifier character in the command-line flag (i.e. only allow -3e
-    // when Certifying K_{3,3} search is merged)
     return "C = command (algorithm implementation to run)\n"
            "    -p = Planar embedding and Kuratowski subgraph isolation\n"
            "    -d = Planar graph drawing by visibility representation\n"
@@ -361,9 +424,6 @@ char const *GetAlgorithmFlags(void)
 
 char const *GetAlgorithmSpecifiers(void)
 {
-    // FIXME: How do we want to indicate to users that they may supply an
-    // optional modifier character to certain graph algorithm specifiers
-    // (i.e. only 3e when Certifying K_{3,3} search is merged)
     return "P. Planar embedding and Kuratowski subgraph isolation\n"
            "D. Planar graph drawing by visibility representation\n"
            "O. Outerplanar embedding and obstruction isolation\n"
@@ -372,8 +432,6 @@ char const *GetAlgorithmSpecifiers(void)
            "4. Search for subgraph homeomorphic to K_4\n";
 }
 
-// FIXME: Do we want to have some sort of equivalent to this function indicating
-// allowed modifier characters per-command?
 char const *GetAlgorithmChoices(void)
 {
     return "pdo234";
@@ -633,10 +691,6 @@ int AttachAlgorithm(graphP theGraph, char command)
  The SUFFIXMAXLENGTH is 32 to accommodate ".out.txt" + ".render.txt" + ".test.txt"
  ****************************************************************************/
 
-#define FILENAMEMAXLENGTH 128
-#define ALGORITHMNAMEMAXLENGTH 32
-#define SUFFIXMAXLENGTH 32
-
 char theFileName[FILENAMEMAXLENGTH + 1 + ALGORITHMNAMEMAXLENGTH + 1 + SUFFIXMAXLENGTH + 1];
 
 /****************************************************************************
@@ -647,18 +701,47 @@ char theFileName[FILENAMEMAXLENGTH + 1 + ALGORITHMNAMEMAXLENGTH + 1 + SUFFIXMAXL
  Returns NULL on error, or a non-NULL string on success.
  ****************************************************************************/
 
-// FIXME: Should I update to char const * const infileName, since we never
-// manipulate the infileName contents, nor the pointer?
-
 char *ConstructInputFilename(char const *infileName)
 {
+    int numCharsToReprFILENAMEMAXLENGTH = 0;
+    char const *fileNameFormatFormat = " %%%d[^\r\n]";
+    char *fileNameFormat = NULL;
+    char lineBuff[MAXLINE + 1];
+
+    if (GetNumCharsToReprInt(FILENAMEMAXLENGTH, &numCharsToReprFILENAMEMAXLENGTH) != OK)
+    {
+        ErrorMessage("Unable to determine number of characters required to represent FILENAMEMAXLENGTH.\n");
+        return NULL;
+    }
+
+    fileNameFormat = (char *)malloc((strlen(fileNameFormatFormat) + numCharsToReprFILENAMEMAXLENGTH + 1) * sizeof(char));
+    if (fileNameFormat == NULL)
+    {
+        ErrorMessage("Unable to allocate memory for filename format string.\n");
+        return NULL;
+    }
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+    sprintf(fileNameFormat, fileNameFormatFormat, MAXLINE);
+#pragma GCC diagnostic pop
     if (infileName == NULL)
     {
         do
         {
             Prompt("Enter graph file name: ");
-            fflush(stdin);
-            scanf(" %s", theFileName);
+            // FlushStdin();
+            // scanf(" %s", theFileName);
+            if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
+                strlen(lineBuff) == 0 ||
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+                sscanf(lineBuff, fileNameFormat, theFileName) != 1)
+#pragma GCC diagnostic pop
+            {
+                ErrorMessage("Unable to read input filename.\n");
+                continue;
+            }
 
             if (strncmp(theFileName, "stdin", strlen("stdin")) != 0 && !strchr(theFileName, '.'))
             {
@@ -696,9 +779,6 @@ char *ConstructInputFilename(char const *infileName)
  *
  * Returns non-NULL string
  ****************************************************************************/
-
-// FIXME: Do we want to incorporate the modifier derived from the commandString
-// in the primary output file name?
 
 char *ConstructPrimaryOutputFilename(char const *infileName, char const *outfileName, char command)
 {
@@ -811,4 +891,58 @@ int ConstructTransformationExpectedResultFilename(char const *infileName, char *
     }
 
     return Result;
+}
+
+/****************************************************************************
+ * WriteAlgorithmResults()
+ ****************************************************************************/
+
+void WriteAlgorithmResults(graphP theGraph, int Result, char command, platform_time start, platform_time end, char const *infileName)
+{
+    char const *messageFormat = NULL;
+    char messageContents[MAXLINE + 1];
+    int charsAvailForStr = 0;
+
+    if (infileName)
+    {
+        messageFormat = "The graph \"%.*s\" ";
+        charsAvailForStr = (int)(MAXLINE - strlen(messageFormat));
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+        sprintf(messageContents, messageFormat, charsAvailForStr, infileName);
+#pragma GCC diagnostic pop
+    }
+    else
+        sprintf(messageContents, "The graph ");
+    Message(messageContents);
+
+    switch (command)
+    {
+    case 'p':
+        sprintf(messageContents, "is%s planar.\n", Result == OK ? "" : " not");
+        break;
+    case 'd':
+        sprintf(messageContents, "is%s planar.\n", Result == OK ? "" : " not");
+        break;
+    case 'o':
+        sprintf(messageContents, "is%s outerplanar.\n", Result == OK ? "" : " not");
+        break;
+    case '2':
+        sprintf(messageContents, "has %s subgraph homeomorphic to K_{2,3}.\n", Result == OK ? "no" : "a");
+        break;
+    case '3':
+        sprintf(messageContents, "has %s subgraph homeomorphic to K_{3,3}.\n", Result == OK ? "no" : "a");
+        break;
+    case '4':
+        sprintf(messageContents, "has %s subgraph homeomorphic to K_4.\n", Result == OK ? "no" : "a");
+        break;
+    default:
+        sprintf(messageContents, "has not been processed due to unrecognized command.\n");
+        break;
+    }
+    Message(messageContents);
+
+    sprintf(messageContents, "Algorithm '%s' executed in %.3lf seconds.\n",
+            GetAlgorithmName(command), platform_GetDuration(start, end));
+    Message(messageContents);
 }

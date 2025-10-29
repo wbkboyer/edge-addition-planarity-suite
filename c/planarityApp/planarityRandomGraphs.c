@@ -62,7 +62,17 @@ int RandomGraphs(char const *const commandString, int NumGraphs, int SizeOfGraph
     }
 
     GetNumberIfZero(&NumGraphs, "Enter number of graphs to generate:", 1, 1000000000);
+    if (NumGraphs == 0)
+    {
+        ErrorMessage("Invalid value for NumGraphs specified; aborting.\n");
+        return NOTOK;
+    }
     GetNumberIfZero(&SizeOfGraphs, "Enter size of graphs:", 1, 10000);
+    if (SizeOfGraphs == 0)
+    {
+        ErrorMessage("Invalid value for SizeOfGraphs specified; aborting.\n");
+        return NOTOK;
+    }
 
     theGraph = MakeGraph(SizeOfGraphs, command);
     origGraph = MakeGraph(SizeOfGraphs, command);
@@ -185,12 +195,6 @@ int RandomGraphs(char const *const commandString, int NumGraphs, int SizeOfGraph
                 }
             }
 
-            // FIXME: I noticed that no check was done on the validity of
-            // origGraph; I realize that below this point, if an error is
-            // encountered, we write the graph on which we encountered an error,
-            // among other work. I think early-out is acceptable here, since
-            // this sort of error likely means that there's something
-            // fundamentally wrong with theGraph or origGraph.
             if ((Result = gp_CopyGraph(origGraph, theGraph)) != OK)
             {
                 sprintf(messageContents, "Unable to make a copy of graph number %d before embedding.\n", K);
@@ -421,10 +425,31 @@ int RandomGraphs(char const *const commandString, int NumGraphs, int SizeOfGraph
 
 void GetNumberIfZero(int *pNum, char const *prompt, int min, int max)
 {
+    char lineBuff[MAXLINE + 1];
+
+    if (pNum == NULL)
+    {
+        ErrorMessage("Unable to get number, as pointer to int is NULL.\n");
+        return;
+    }
+    if (prompt == NULL || strlen(prompt) == 0)
+    {
+        ErrorMessage("Invalid prompt supplied.\n");
+        return;
+    }
+
     if (*pNum == 0)
     {
         Prompt(prompt);
-        scanf(" %d", pNum);
+        // scanf(" %d", pNum);
+        if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
+            strlen(lineBuff) == 0 ||
+            sscanf(lineBuff, " %d", pNum) != 1)
+        {
+            ErrorMessage("Invalid integer choice.\n");
+            (*pNum) = 0;
+            return;
+        }
     }
 
     if (min < 1)
@@ -506,6 +531,7 @@ int RandomGraph(char const *const commandString, int extraEdges, int numVertices
     char const *messageFormat = NULL;
     char messageContents[MAXLINE + 1];
     int charsAvailForStr = 0;
+    char lineBuff[MAXLINE + 1];
 
     if ((Result = GetCommandAndOptionalModifier(commandString, &command, &modifier)) != OK)
     {
@@ -520,6 +546,12 @@ int RandomGraph(char const *const commandString, int extraEdges, int numVertices
     }
 
     GetNumberIfZero(&numVertices, "Enter number of vertices:", 1, 1000000);
+    if (numVertices == 0)
+    {
+        ErrorMessage("Invalid value for numVerticies specified; aborting.\n");
+        return NOTOK;
+    }
+
     if ((theGraph = MakeGraph(numVertices, command)) == NULL)
         return NOTOK;
 
@@ -573,8 +605,18 @@ int RandomGraph(char const *const commandString, int extraEdges, int numVertices
         if (!getQuietModeSetting())
         {
             Prompt("Do you want to save the generated graph in edge list format (y/n)? ");
-            fflush(stdin);
-            scanf(" %c", &saveEdgeListFormat);
+            do
+            {
+                if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
+                {
+                    ErrorMessage("Unable to read from stdin; aborting.\n");
+                    return NOTOK;
+                }
+                if (strlen(lineBuff) != 1 ||
+                    sscanf(lineBuff, " %c", &saveEdgeListFormat) != 1 ||
+                    (tolower(saveEdgeListFormat) != 'y' && tolower(saveEdgeListFormat) != 'n'))
+                    ErrorMessage("Invalid choice whether to save graph in edge list format.\n");
+            } while ((tolower(saveEdgeListFormat) != 'y' && tolower(saveEdgeListFormat) != 'n'));
         }
         else
             saveEdgeListFormat = 'n';
