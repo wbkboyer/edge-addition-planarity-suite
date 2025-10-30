@@ -67,6 +67,7 @@ int RandomGraphs(char const *const commandString, int NumGraphs, int SizeOfGraph
         ErrorMessage("Invalid value for NumGraphs specified; aborting.\n");
         return NOTOK;
     }
+
     GetNumberIfZero(&SizeOfGraphs, "Enter size of graphs:", 1, 10000);
     if (SizeOfGraphs == 0)
     {
@@ -441,7 +442,6 @@ void GetNumberIfZero(int *pNum, char const *prompt, int min, int max)
     if (*pNum == 0)
     {
         Prompt(prompt);
-        // scanf(" %d", pNum);
         if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
             strlen(lineBuff) == 0 ||
             sscanf(lineBuff, " %d", pNum) != 1)

@@ -149,16 +149,17 @@ void TransformGraphMenu(void)
     do
     {
         Prompt("Enter input filename:\n");
-        if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
-            strlen(lineBuff) == 0 ||
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
+        if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
+            strlen(lineBuff) == 0 ||
             sscanf(lineBuff, fileNameFormat, infileName) != 1)
-#pragma GCC diagnostic pop
+
         {
             ErrorMessage("Unable to read input filename.\n");
             continue;
         }
+#pragma GCC diagnostic pop
 
         if (strncmp(infileName, "stdin", strlen("stdin")) == 0)
         {
@@ -170,16 +171,16 @@ void TransformGraphMenu(void)
     do
     {
         Prompt("Enter output filename, or type \"stdout\" to output to console:\n");
-        if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
-            strlen(lineBuff) == 0 ||
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
+        if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
+            strlen(lineBuff) == 0 ||
             sscanf(lineBuff, fileNameFormat, outfileName) != 1)
-#pragma GCC diagnostic pop
         {
             ErrorMessage("Unable to read output filename.\n");
             continue;
         }
+#pragma GCC diagnostic pop
     } while (strlen(outfileName) == 0);
 
     do
@@ -240,16 +241,16 @@ void TestAllGraphsMenu(void)
     do
     {
         Prompt("Enter input filename:\n");
-        if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
-            strlen(lineBuff) == 0 ||
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
+        if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
+            strlen(lineBuff) == 0 ||
             sscanf(lineBuff, fileNameFormat, infileName) != 1)
-#pragma GCC diagnostic pop
         {
             ErrorMessage("Unable to read input filename.\n");
             continue;
         }
+#pragma GCC diagnostic pop
 
         if (strncmp(infileName, "stdin", strlen("stdin")) == 0)
         {
@@ -261,16 +262,16 @@ void TestAllGraphsMenu(void)
     do
     {
         Prompt("Enter output filename, or type \"stdout\" to output to console:\n");
-        if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
-            strlen(lineBuff) == 0 ||
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
+        if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
+            strlen(lineBuff) == 0 ||
             sscanf(lineBuff, fileNameFormat, outfileName) != 1)
-#pragma GCC diagnostic pop
         {
             ErrorMessage("Unable to read output filename.\n");
             continue;
         }
+#pragma GCC diagnostic pop
     } while (strlen(outfileName) == 0);
 
     do

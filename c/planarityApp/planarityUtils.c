@@ -730,18 +730,16 @@ char *ConstructInputFilename(char const *infileName)
         do
         {
             Prompt("Enter graph file name: ");
-            // FlushStdin();
-            // scanf(" %s", theFileName);
-            if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
-                strlen(lineBuff) == 0 ||
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
+            if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
+                strlen(lineBuff) == 0 ||
                 sscanf(lineBuff, fileNameFormat, theFileName) != 1)
-#pragma GCC diagnostic pop
             {
                 ErrorMessage("Unable to read input filename.\n");
                 continue;
             }
+#pragma GCC diagnostic pop
 
             if (strncmp(theFileName, "stdin", strlen("stdin")) != 0 && !strchr(theFileName, '.'))
             {
