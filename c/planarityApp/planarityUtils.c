@@ -723,7 +723,7 @@ char *ConstructInputFilename(char const *infileName)
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
-    sprintf(fileNameFormat, fileNameFormatFormat, MAXLINE);
+    sprintf(fileNameFormat, fileNameFormatFormat, FILENAMEMAXLENGTH);
 #pragma GCC diagnostic pop
     if (infileName == NULL)
     {
