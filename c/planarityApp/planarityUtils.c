@@ -763,6 +763,9 @@ char *ConstructInputFilename(char const *infileName)
         strcpy(theFileName, infileName);
     }
 
+    if (fileNameFormat != NULL)
+        free(fileNameFormat);
+
     return theFileName;
 }
 
