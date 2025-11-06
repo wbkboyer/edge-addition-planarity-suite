@@ -9,136 +9,199 @@ See the LICENSE.TXT file for licensing information.
 /****************************************************************************
  MENU-DRIVEN PROGRAM
  ****************************************************************************/
-void TransformGraphMenu(void);
-void TestAllGraphsMenu(void);
+int TransformGraphMenu(void);
+int TestAllGraphsMenu(void);
 
 int menu(void)
 {
+    int Result = OK;
+
     char lineBuff[MAXLINE + 1];
-    char commandString[3];
+
+    int numCharsToReprCOMMANDSTRINGMAXLENGTH = 0;
+    char const *choiceStringFormatFormat = " %%%ds";
+    char *choiceStringFormat = NULL;
+    char choiceString[COMMANDSTRINGMAXLENGTH + 1];
+
+    char *commandString = NULL, *secondOutfile = NULL;
+
     char command = '\0';
 
-    do
+    memset(lineBuff, '\0', (MAXLINE + 1));
+    memset(choiceString, '\0', (COMMANDSTRINGMAXLENGTH + 1));
+
+    if (GetNumCharsToReprInt(COMMANDSTRINGMAXLENGTH, &numCharsToReprCOMMANDSTRINGMAXLENGTH) != OK)
     {
-        Message(GetProjectTitle());
-
-        Message(GetAlgorithmSpecifiers());
-
-        Message(
-            "X. Transform single graph in supported file to .g6, adjacency list, or adjacency matrix\n"
-            "T. Perform an algorithm test on all graphs in .g6 input file\n"
-            "H. Help message for command line version\n"
-            "R. Reconfigure options\n"
-            "Q. Quit\n"
-            "\n");
-
-        Prompt("Enter Choice: ");
-        if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
-            strlen(lineBuff) == 0 || strlen(lineBuff) > 2 ||
-            sscanf(lineBuff, " %2s", commandString) != 1)
+        ErrorMessage("Unable to determine number of characters required to represent COMMANDSTRINGMAXLENGTH.\n");
+        Result = NOTOK;
+    }
+    else
+    {
+        choiceStringFormat = (char *)malloc((strlen(choiceStringFormatFormat) + numCharsToReprCOMMANDSTRINGMAXLENGTH + 1) * sizeof(char));
+        if (choiceStringFormat == NULL)
         {
-            ErrorMessage("Invalid input; please retry.\n");
-            continue;
+            ErrorMessage("Unable to allocate memory for choice string format string.\n");
+            Result = NOTOK;
         }
+    }
 
-        if (GetCommandAndOptionalModifier(commandString, &command, NULL) != OK)
+    if (Result == OK)
+    {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+        sprintf(choiceStringFormat, choiceStringFormatFormat, COMMANDSTRINGMAXLENGTH);
+#pragma GCC diagnostic pop
+
+        do
         {
-            Message("Unable to extract command from choice, please try again.\n");
-            continue;
-        }
+            Message(GetProjectTitle());
 
-        if (command == 'h')
-            helpMessage(NULL);
+            Message(GetAlgorithmSpecifiers());
 
-        else if (command == 'r')
-            Reconfigure();
+            Message(
+                "X. Transform single graph in supported file to .g6, adjacency list, or adjacency matrix\n"
+                "T. Perform an algorithm test on all graphs in .g6 input file\n"
+                "H. Help message for command line version\n"
+                "R. Reconfigure options\n"
+                "Q. Quit\n"
+                "\n");
 
-        else if (command == 'x')
-            TransformGraphMenu();
-
-        else if (command == 't')
-            TestAllGraphsMenu();
-
-        else if (command != 'q')
-        {
-            char *secondOutfile = NULL;
-            if (command == 'p' || command == 'd' || command == 'o')
-                secondOutfile = (char *)"";
-
-            if (!strchr(GetAlgorithmChoices(), command))
+            Prompt("Enter Choice: ");
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+            if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
+                strlen(lineBuff) == 0 || strlen(lineBuff) > 2 ||
+                sscanf(lineBuff, choiceStringFormat, choiceString) != 1)
             {
-                Message("Invalid menu choice, please try again.\n");
+                ErrorMessage("Invalid input; please retry.\n");
+                continue;
+            }
+#pragma GCC diagnostic pop
+
+            if (strncmp(choiceString, "h", 1) == 0)
+                helpMessage(NULL);
+
+            else if (strncmp(choiceString, "r", 1) == 0)
+            {
+                if (Reconfigure() != OK)
+                    ErrorMessage("Invalid user input for reconfigure; press 'r' again to retry reconfiguration.\n");
+
+                continue;
             }
 
-            else
+            else if (strncmp(choiceString, "x", 1) == 0)
             {
-                switch (tolower(Mode))
+                // TODO: Should I even still emit an error at the menu
+                // level, since there's other layers of error messaging?
+                if ((Result = TransformGraphMenu()) != OK)
+                    ErrorMessage("Transform Graph Menu emitted an error.\n");
+            }
+
+            else if (strncmp(choiceString, "t", 1) == 0)
+            {
+                // TODO: Should I even still emit an error at the menu
+                // level, since there's other layers of error messaging?
+                if ((Result = TestAllGraphsMenu()) != OK)
+                    ErrorMessage("Test All Graphs Menu emitted an error.\n");
+            }
+
+            else if (strncmp(choiceString, "q", 1) != 0)
+            {
+                commandString = choiceString;
+                if (GetCommandAndOptionalModifier(commandString, &command, NULL) != OK)
                 {
-                case 's':
-                    SpecificGraph(commandString, NULL, NULL, secondOutfile, NULL, NULL, NULL);
-                    break;
-                case 'r':
-                    RandomGraphs(commandString, 0, 0, NULL);
-                    break;
-                case 'm':
-                    RandomGraph(commandString, 0, 0, NULL, NULL);
-                    break;
-                case 'n':
-                    RandomGraph(commandString, 1, 0, NULL, NULL);
-                    break;
-                default:
-                    break;
+                    Message("Unable to extract command from choice, please retry.\n");
+                    commandString = NULL;
+
+                    continue;
+                }
+
+                if (command == 'p' || command == 'd' || command == 'o')
+                    secondOutfile = (char *)"";
+
+                if (!strchr(GetAlgorithmChoices(), command))
+                    Message("Invalid algorithm command choice, please retry.\n");
+
+                else
+                {
+                    switch (tolower(Mode))
+                    {
+                    case 's':
+                        Result = SpecificGraph(commandString, NULL, NULL, secondOutfile, NULL, NULL, NULL);
+                        break;
+                    case 'r':
+                        Result = RandomGraphs(commandString, 0, 0, NULL);
+                        break;
+                    case 'm':
+                        Result = RandomGraph(commandString, 0, 0, NULL, NULL);
+                        break;
+                    case 'n':
+                        Result = RandomGraph(choiceString, 1, 0, NULL, NULL);
+                        break;
+                    default:
+                        break;
+                    }
                 }
             }
-        }
 
-        if (command != 'r' && command != 'q')
-        {
-            Prompt("\nPress return key to continue...");
-            if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
+            if (strcspn(choiceString, "rq") == strlen(choiceString))
             {
-                ErrorMessage("Unable to fetch from stdin; exiting.\n");
-                return -1;
-            }
+                Prompt("\nPress return key to continue...");
+                if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
+                {
+                    // TODO: How should I handle this error, if not to exit out
+                    // of menu?
+                    ErrorMessage("Unable to fetch from stdin; exiting.\n");
+                    Result = NOTOK;
+                    break;
+                }
 
-            Message("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
-            FlushConsole(stdout);
-        }
-    } while (command != 'q');
+                Message("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+                FlushConsole(stdout);
+            }
+        } while (strncmp(choiceString, "q", 1) != 0);
+    }
 
     // Certain debuggers don't terminate correctly with pending output content
     FlushConsole(stdout);
     FlushConsole(stderr);
 
-    return 0;
+    if (choiceStringFormat != NULL)
+        free(choiceStringFormat);
+
+    // NOTE: Translates internal planarity codes to appropriate exit codes
+    return Result == OK ? 0 : (Result == NONEMBEDDABLE ? 1 : -1);
 }
 
-void TransformGraphMenu(void)
+int TransformGraphMenu(void)
 {
     int Result = OK;
 
     int numCharsToReprFILENAMEMAXLENGTH = 0;
     char const *fileNameFormatFormat = " %%%d[^\r\n]";
     char *fileNameFormat = NULL;
+    char lineBuff[MAXLINE + 1];
     char infileName[FILENAMEMAXLENGTH + 1];
     char outfileName[FILENAMEMAXLENGTH + 1];
+    char commandStr[COMMANDSTRINGMAXLENGTH + 1];
     char outputFormat = '\0';
-    char commandStr[4];
-    char lineBuff[MAXLINE + 1];
 
-    infileName[0] = outfileName[0] = commandStr[0] = '\0';
+    memset(lineBuff, '\0', (MAXLINE + 1));
+    memset(infileName, '\0', (FILENAMEMAXLENGTH + 1));
+    memset(outfileName, '\0', (FILENAMEMAXLENGTH + 1));
+    memset(commandStr, '\0', (COMMANDSTRINGMAXLENGTH + 1));
 
     if (GetNumCharsToReprInt(FILENAMEMAXLENGTH, &numCharsToReprFILENAMEMAXLENGTH) != OK)
     {
         ErrorMessage("Unable to determine number of characters required to represent FILENAMEMAXLENGTH.\n");
-        return;
+        return NOTOK;
     }
 
     fileNameFormat = (char *)malloc((strlen(fileNameFormatFormat) + numCharsToReprFILENAMEMAXLENGTH + 1) * sizeof(char));
     if (fileNameFormat == NULL)
     {
         ErrorMessage("Unable to allocate memory for filename format string.\n");
-        return;
+        return NOTOK;
     }
 
 #pragma GCC diagnostic push
@@ -164,7 +227,7 @@ void TransformGraphMenu(void)
         if (strncmp(infileName, "stdin", strlen("stdin")) == 0)
         {
             ErrorMessage("\n\tPlease choose an input file path: stdin not supported from menu.\n\n");
-            infileName[0] = '\0';
+            memset(infileName, '\0', (FILENAMEMAXLENGTH + 1));
         }
     } while (strlen(infileName) == 0);
 
@@ -189,49 +252,75 @@ void TransformGraphMenu(void)
         Prompt("Enter output format: ");
         if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
             strlen(lineBuff) != 1 ||
-            sscanf(lineBuff, " %c", &outputFormat) != 1)
+            sscanf(lineBuff, " %c", &outputFormat) != 1 ||
+            !strchr(GetSupportedOutputFormats(), tolower(outputFormat)))
         {
             ErrorMessage("Invalid choice for output format.\n");
             continue;
         }
-        outputFormat = (char)tolower(outputFormat);
-        if (strchr(GetSupportedOutputFormats(), outputFormat))
-            sprintf(commandStr, "-%c", outputFormat);
+
+        sprintf(commandStr, "-%c", (char)tolower(outputFormat));
     } while (strlen(commandStr) == 0);
 
     Result = TransformGraph(commandStr, infileName, NULL, NULL, outfileName, NULL);
-    if (Result != OK)
-        ErrorMessage("Failed to perform transformation.\n");
 
     if (fileNameFormat != NULL)
         free(fileNameFormat);
+
+    return Result;
 }
 
-void TestAllGraphsMenu(void)
+int TestAllGraphsMenu(void)
 {
     int Result = OK;
+
+    char lineBuff[MAXLINE + 1];
 
     int numCharsToReprFILENAMEMAXLENGTH = 0;
     char const *fileNameFormatFormat = " %%%d[^\r\n]";
     char *fileNameFormat = NULL;
-    char infileName[MAXLINE + 1];
-    char outfileName[MAXLINE + 1];
-    char commandString[3];
-    char lineBuff[MAXLINE + 1];
+    char infileName[FILENAMEMAXLENGTH + 1];
+    char outfileName[FILENAMEMAXLENGTH + 1];
 
-    infileName[0] = outfileName[0] = '\0';
+    int numCharsToReprCOMMANDSTRINGMAXLENGTH = 0;
+    char const *commandStringFormatFormat = " %%%ds";
+    char *commandStringFormat = NULL;
+    char commandString[COMMANDSTRINGMAXLENGTH + 1];
+
+    memset(lineBuff, '\0', (MAXLINE + 1));
+    memset(infileName, '\0', (FILENAMEMAXLENGTH + 1));
+    memset(outfileName, '\0', (FILENAMEMAXLENGTH + 1));
+    memset(commandString, '\0', (COMMANDSTRINGMAXLENGTH + 1));
+
+    if (GetNumCharsToReprInt(COMMANDSTRINGMAXLENGTH, &numCharsToReprCOMMANDSTRINGMAXLENGTH) != OK)
+    {
+        ErrorMessage("Unable to determine number of characters required to represent COMMANDSTRINGMAXLENGTH.\n");
+        return NOTOK;
+    }
+
+    commandStringFormat = (char *)malloc((strlen(commandStringFormatFormat) + numCharsToReprCOMMANDSTRINGMAXLENGTH + 1) * sizeof(char));
+    if (commandStringFormat == NULL)
+    {
+        ErrorMessage("Unable to allocate memory for command string format string.\n");
+        return NOTOK;
+    }
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+    sprintf(commandStringFormat, commandStringFormatFormat, COMMANDSTRINGMAXLENGTH);
+#pragma GCC diagnostic pop
 
     if (GetNumCharsToReprInt(FILENAMEMAXLENGTH, &numCharsToReprFILENAMEMAXLENGTH) != OK)
     {
         ErrorMessage("Unable to determine number of characters required to represent FILENAMEMAXLENGTH.\n");
-        return;
+        return NOTOK;
     }
 
     fileNameFormat = (char *)malloc((strlen(fileNameFormatFormat) + numCharsToReprFILENAMEMAXLENGTH + 1) * sizeof(char));
     if (fileNameFormat == NULL)
     {
         ErrorMessage("Unable to allocate memory for filename format string.\n");
-        return;
+        return NOTOK;
     }
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
@@ -255,7 +344,7 @@ void TestAllGraphsMenu(void)
         if (strncmp(infileName, "stdin", strlen("stdin")) == 0)
         {
             ErrorMessage("\n\tPlease choose an input file path: stdin not supported from menu.\n\n");
-            infileName[0] = '\0';
+            memset(infileName, '\0', (FILENAMEMAXLENGTH + 1));
         }
     } while (strlen(infileName) == 0);
 
@@ -278,19 +367,25 @@ void TestAllGraphsMenu(void)
     {
         Message(GetAlgorithmSpecifiers());
         Prompt("Enter algorithm specifier (with optional modifier): ");
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
         if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
             strlen(lineBuff) == 0 || strlen(lineBuff) > 2 ||
-            sscanf(lineBuff, " %2s", commandString) != 1)
+            sscanf(lineBuff, commandStringFormat, commandString) != 1)
         {
             ErrorMessage("Unable to command and optional modifier.\n");
             continue;
         }
+#pragma GCC diagnostic pop
     } while (strlen(commandString) == 0);
 
     Result = TestAllGraphs(commandString, infileName, outfileName, NULL);
-    if (Result != OK)
-        ErrorMessage("Algorithm test on all graphs in .g6 input file failed.\n");
+
+    if (commandStringFormat != NULL)
+        free(commandStringFormat);
 
     if (fileNameFormat != NULL)
         free(fileNameFormat);
+
+    return Result;
 }

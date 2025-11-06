@@ -17,6 +17,9 @@ extern "C"
 #define FILENAMEMAXLENGTH 128
 #define ALGORITHMNAMEMAXLENGTH 32
 #define SUFFIXMAXLENGTH 32
+#define COMMANDSTRINGMAXLENGTH 2
+
+#define YESNOCHOICECHARS "yYnN"
 
     char const *GetProjectTitle(void);
     char const *GetAlgorithmFlags(void);
@@ -49,7 +52,7 @@ extern "C"
         ObstructedOut,
         AdjListsForEmbeddingsOut;
 
-    void Reconfigure(void);
+    int Reconfigure(void);
 
     /* Low-level Utilities */
     int GetLineFromStdin(char *lineBuff, int lineBuffSize);

@@ -32,6 +32,7 @@ int outputTestAllGraphsResults(char command, char modifier, testAllStatsP stats,
 int TestAllGraphs(char const *const commandString, char const *const infileName, char *outfileName, char **outputStr)
 {
     int Result = OK;
+
     platform_time start, end;
     char command = '\0', modifier = '\0';
 

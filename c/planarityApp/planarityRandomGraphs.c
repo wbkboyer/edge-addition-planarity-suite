@@ -45,9 +45,11 @@ int RandomGraphs(char const *const commandString, int NumGraphs, int SizeOfGraph
     int charsAvailForStr = 0;
     char const *messageFormat = NULL;
     char messageContents[MAXLINE + 1];
-    char theFileName[MAXLINE + 1];
+    char theFileName[FILENAMEMAXLENGTH + 1];
 
-    messageContents[0] = theFileName[0] = '\0';
+    memset(ObstructionMinorFreqs, 0, NUM_MINORS);
+    memset(messageContents, '\0', (MAXLINE + 1));
+    memset(theFileName, '\0', (FILENAMEMAXLENGTH + 1));
 
     if ((Result = GetCommandAndOptionalModifier(commandString, &command, &modifier)) != OK)
     {
@@ -428,6 +430,8 @@ void GetNumberIfZero(int *pNum, char const *prompt, int min, int max)
 {
     char lineBuff[MAXLINE + 1];
 
+    memset(lineBuff, '\0', (MAXLINE + 1));
+
     if (pNum == NULL)
     {
         ErrorMessage("Unable to get number, as pointer to int is NULL.\n");
@@ -478,6 +482,8 @@ graphP MakeGraph(int Size, char command)
     graphP theGraph;
     char messageContents[MAXLINE + 1];
 
+    memset(messageContents, '\0', (MAXLINE + 1));
+
     if ((theGraph = gp_New()) == NULL || gp_InitGraph(theGraph, Size) != OK)
     {
         ErrorMessage("Error creating space for a graph of the given size.\n");
@@ -521,17 +527,20 @@ void ReinitializeGraph(graphP *pGraph, int ReuseGraphs, char command)
 
 int RandomGraph(char const *const commandString, int extraEdges, int numVertices, char *outfileName, char *outfile2Name)
 {
-    int Result;
+    int Result = OK;
 
     platform_time start, end;
     graphP theGraph = NULL, origGraph = NULL;
     int embedFlags = 0;
     char saveEdgeListFormat = '\0', command = '\0', modifier = '\0';
 
+    char lineBuff[MAXLINE + 1];
     char const *messageFormat = NULL;
     char messageContents[MAXLINE + 1];
     int charsAvailForStr = 0;
-    char lineBuff[MAXLINE + 1];
+
+    memset(lineBuff, '\0', (MAXLINE + 1));
+    memset(messageContents, '\0', (MAXLINE + 1));
 
     if ((Result = GetCommandAndOptionalModifier(commandString, &command, &modifier)) != OK)
     {
@@ -548,7 +557,7 @@ int RandomGraph(char const *const commandString, int extraEdges, int numVertices
     GetNumberIfZero(&numVertices, "Enter number of vertices:", 1, 1000000);
     if (numVertices == 0)
     {
-        ErrorMessage("Invalid value for numVerticies specified; aborting.\n");
+        ErrorMessage("Invalid value for numVertices specified; aborting.\n");
         return NOTOK;
     }
 
@@ -612,16 +621,19 @@ int RandomGraph(char const *const commandString, int extraEdges, int numVertices
                     ErrorMessage("Unable to read from stdin; aborting.\n");
                     return NOTOK;
                 }
+
                 if (strlen(lineBuff) != 1 ||
                     sscanf(lineBuff, " %c", &saveEdgeListFormat) != 1 ||
-                    (tolower(saveEdgeListFormat) != 'y' && tolower(saveEdgeListFormat) != 'n'))
+                    !strchr(YESNOCHOICECHARS, saveEdgeListFormat))
                     ErrorMessage("Invalid choice whether to save graph in edge list format.\n");
-            } while ((tolower(saveEdgeListFormat) != 'y' && tolower(saveEdgeListFormat) != 'n'));
+            } while (!strchr(YESNOCHOICECHARS, saveEdgeListFormat));
+
+            saveEdgeListFormat = (char)tolower(saveEdgeListFormat);
         }
         else
             saveEdgeListFormat = 'n';
 
-        if (tolower(saveEdgeListFormat) == 'y')
+        if (saveEdgeListFormat == 'y')
         {
             char theFileName[MAXLINE + 1];
 
@@ -657,5 +669,6 @@ int RandomGraph(char const *const commandString, int extraEdges, int numVertices
     gp_Free(&origGraph);
 
     FlushConsole(stdout);
+
     return Result;
 }

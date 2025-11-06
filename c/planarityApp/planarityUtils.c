@@ -17,27 +17,25 @@ char Mode = 'r',
      ObstructedOut = 'n',
      AdjListsForEmbeddingsOut = 'n';
 
-void Reconfigure(void)
+int Reconfigure(void)
 {
-    char const *reconfigureErrorMessage = "Invalid input; please retry reconfiguration.\n";
-
     char lineBuff[MAXLINE + 1];
+
+    memset(lineBuff, '\0', (MAXLINE + 1));
+
     Prompt("\nDo you want to \n"
            "  Randomly generate graphs (r),\n"
            "  Specify a graph (s),\n"
            "  Randomly generate a maximal planar graph (m), or\n"
            "  Randomly generate a non-planar graph (n)?\n\t");
+
     if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
         strlen(lineBuff) != 1 ||
-        sscanf(lineBuff, " %c", &Mode) != 1)
-    {
-        ErrorMessage(reconfigureErrorMessage);
-        return;
-    }
+        sscanf(lineBuff, " %c", &Mode) != 1 ||
+        !strchr("rsmn", tolower(Mode)))
+        return NOTOK;
 
     Mode = (char)tolower(Mode);
-    if (!strchr("rsmn", Mode))
-        Mode = 's';
 
     if (Mode == 'r')
     {
@@ -46,53 +44,55 @@ void Reconfigure(void)
         Prompt("Do you want original graphs in directory 'random'? (y/n) ");
         if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
             strlen(lineBuff) != 1 ||
-            sscanf(lineBuff, " %c", &OrigOut) != 1)
-        {
-            ErrorMessage(reconfigureErrorMessage);
-            return;
-        }
+            sscanf(lineBuff, " %c", &OrigOut) != 1 ||
+            !strchr(YESNOCHOICECHARS, OrigOut))
+            return NOTOK;
 
-        if (tolower(OrigOut) == 'y')
+        OrigOut = (char)tolower(OrigOut);
+
+        if (OrigOut == 'y')
         {
             Prompt("Do you want to output generated graphs to Adjacency List (last 10 only) or to G6 (all)? (a/g) ");
             if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
                 strlen(lineBuff) != 1 ||
-                sscanf(lineBuff, " %c", &OrigOutFormat) != 1)
-            {
-                ErrorMessage(reconfigureErrorMessage);
-                return;
-            }
+                sscanf(lineBuff, " %c", &OrigOutFormat) != 1 ||
+                !strchr("aAgG", OrigOutFormat))
+                return NOTOK;
+
+            OrigOutFormat = (char)tolower(OrigOutFormat);
         }
 
         Prompt("Do you want adj. matrix of embeddable graphs in directory 'embedded' (last 10 max))? (y/n) ");
         if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
             strlen(lineBuff) != 1 ||
-            sscanf(lineBuff, " %c", &EmbeddableOut) != 1)
-        {
-            ErrorMessage(reconfigureErrorMessage);
-            return;
-        }
+            sscanf(lineBuff, " %c", &EmbeddableOut) != 1 ||
+            !strchr(YESNOCHOICECHARS, EmbeddableOut))
+            return NOTOK;
+
+        EmbeddableOut = (char)tolower(EmbeddableOut);
 
         Prompt("Do you want adj. matrix of obstructed graphs in directory 'obstructed' (last 10 max)? (y/n) ");
         if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
             ferror(stdin) || strlen(lineBuff) != 1 ||
-            sscanf(lineBuff, " %c", &ObstructedOut) != 1)
-        {
-            ErrorMessage(reconfigureErrorMessage);
-            return;
-        }
+            sscanf(lineBuff, " %c", &ObstructedOut) != 1 ||
+            !strchr(YESNOCHOICECHARS, ObstructedOut))
+            return NOTOK;
+
+        ObstructedOut = (char)tolower(ObstructedOut);
 
         Prompt("Do you want adjacency list format of embeddings in directory 'adjlist' (last 10 max)? (y/n) ");
         if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
             strlen(lineBuff) != 1 ||
-            sscanf(lineBuff, " %c", &AdjListsForEmbeddingsOut) != 1)
-        {
-            ErrorMessage(reconfigureErrorMessage);
-            return;
-        }
+            sscanf(lineBuff, " %c", &AdjListsForEmbeddingsOut) != 1 ||
+            !strchr(YESNOCHOICECHARS, AdjListsForEmbeddingsOut))
+            return NOTOK;
+
+        AdjListsForEmbeddingsOut = (char)tolower(AdjListsForEmbeddingsOut);
     }
 
     FlushConsole(stdout);
+
+    return OK;
 }
 
 int GetLineFromStdin(char *lineBuff, int lineBuffSize)
@@ -103,7 +103,8 @@ int GetLineFromStdin(char *lineBuff, int lineBuffSize)
         return NOTOK;
     }
 
-    lineBuff[0] = '\0';
+    memset(lineBuff, '\0', lineBuffSize);
+
     if (fgets(lineBuff, lineBuffSize, stdin) == NULL && ferror(stdin))
     {
         ErrorMessage("Call to fgets() from stdin failed.\n");
@@ -238,8 +239,9 @@ char *ReadTextFileIntoString(char const *infileName)
 
 int TextFileMatchesString(char const *theFilename, char const *theString)
 {
-    FILE *infile = NULL;
     int Result = TRUE;
+
+    FILE *infile = NULL;
 
     if (theFilename != NULL)
         infile = fopen(theFilename, "r");
@@ -286,6 +288,7 @@ int TextFileMatchesString(char const *theFilename, char const *theString)
 
     if (infile != NULL)
         fclose(infile);
+
     return Result;
 }
 
@@ -294,8 +297,9 @@ int TextFileMatchesString(char const *theFilename, char const *theString)
 
 int TextFilesEqual(char *file1Name, char *file2Name)
 {
-    FILE *infile1 = NULL, *infile2 = NULL;
     int Result = TRUE;
+
+    FILE *infile1 = NULL, *infile2 = NULL;
 
     infile1 = fopen(file1Name, "r");
     infile2 = fopen(file2Name, "r");
@@ -348,8 +352,10 @@ int TextFilesEqual(char *file1Name, char *file2Name)
 
     if (infile1 != NULL)
         fclose(infile1);
+
     if (infile2 != NULL)
         fclose(infile2);
+
     return Result;
 }
 
@@ -358,8 +364,9 @@ int TextFilesEqual(char *file1Name, char *file2Name)
 
 int BinaryFilesEqual(char *file1Name, char *file2Name)
 {
-    FILE *infile1 = NULL, *infile2 = NULL;
     int Result = TRUE;
+
+    FILE *infile1 = NULL, *infile2 = NULL;
 
     infile1 = fopen(file1Name, "r");
     infile2 = fopen(file2Name, "r");
@@ -401,8 +408,10 @@ int BinaryFilesEqual(char *file1Name, char *file2Name)
 
     if (infile1 != NULL)
         fclose(infile1);
+
     if (infile2 != NULL)
         fclose(infile2);
+
     return Result;
 }
 
@@ -708,6 +717,8 @@ char *ConstructInputFilename(char const *infileName)
     char *fileNameFormat = NULL;
     char lineBuff[MAXLINE + 1];
 
+    memset(lineBuff, '\0', (MAXLINE + 1));
+
     if (GetNumCharsToReprInt(FILENAMEMAXLENGTH, &numCharsToReprFILENAMEMAXLENGTH) != OK)
     {
         ErrorMessage("Unable to determine number of characters required to represent FILENAMEMAXLENGTH.\n");
@@ -855,6 +866,7 @@ char *ConstructPrimaryOutputFilename(char const *infileName, char const *outfile
 int ConstructTransformationExpectedResultFilename(char const *infileName, char **outfileName, char command, int baseFlag)
 {
     int Result = OK;
+
     char const *baseName = GetBaseName(baseFlag);
     char const *transformationName = GetTransformationName(command);
     int infileNameLen = -1;
@@ -903,6 +915,8 @@ void WriteAlgorithmResults(graphP theGraph, int Result, char command, platform_t
     char const *messageFormat = NULL;
     char messageContents[MAXLINE + 1];
     int charsAvailForStr = 0;
+
+    memset(messageContents, '\0', (MAXLINE + 1));
 
     if (infileName)
     {

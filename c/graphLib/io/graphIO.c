@@ -333,10 +333,12 @@ int _ReadAdjList(graphP theGraph, strOrFileP inputContainer)
 
 int _ReadLEDAGraph(graphP theGraph, strOrFileP inputContainer)
 {
-    char Line[MAXLINE + 1];
     int N = -1;
     int graphType, M, m, u, v, ErrorCode;
     int zeroBasedOffset = gp_GetFirstVertex(theGraph) == 0 ? 1 : 0;
+    char Line[MAXLINE + 1];
+
+    memset(Line, '\0', (MAXLINE + 1));
 
     if (sf_ValidateStrOrFile(inputContainer) != OK)
         return NOTOK;
@@ -475,8 +477,11 @@ int gp_ReadFromString(graphP theGraph, char *inputStr)
 int _ReadGraph(graphP theGraph, strOrFileP inputContainer)
 {
     int RetVal = OK;
+
     bool extraDataAllowed = false;
     char lineBuff[MAXLINE + 1];
+
+    memset(lineBuff, '\0', (MAXLINE + 1));
 
     if (sf_ValidateStrOrFile(inputContainer) != OK)
         return NOTOK;
@@ -539,10 +544,6 @@ int _ReadGraph(graphP theGraph, strOrFileP inputContainer)
                     RetVal = NOTOK;
                 else
                 {
-                    // TODO: how do I distinguish between "there's no more
-                    // content on input stream" and "I've hit an error state"?
-                    // ISO standard for fgets() requires errno to be set:
-                    // https://pubs.opengroup.org/onlinepubs/9699919799/functions/fgets.html
                     while (sf_fgets(lineBuff, MAXLINE, inputContainer) != NULL)
                     {
                         if (sb_ConcatString(extraData, lineBuff) != OK)
@@ -589,6 +590,7 @@ int _WriteAdjList(graphP theGraph, strOrFileP outputContainer)
     int v, e;
     int zeroBasedOffset = (theGraph->internalFlags & FLAGS_ZEROBASEDIO) ? gp_GetFirstVertex(theGraph) : 0;
     char numberStr[MAXCHARSFOR32BITINT + 1];
+
     memset(numberStr, '\0', (MAXCHARSFOR32BITINT + 1) * sizeof(char));
 
     if (theGraph == NULL || sf_ValidateStrOrFile(outputContainer) != OK)
@@ -650,6 +652,7 @@ int _WriteAdjMatrix(graphP theGraph, strOrFileP outputContainer)
     int v, e, K;
     char *Row = NULL;
     char numberStr[MAXCHARSFOR32BITINT + 1];
+
     memset(numberStr, '\0', (MAXCHARSFOR32BITINT + 1) * sizeof(char));
 
     if (theGraph == NULL || sf_ValidateStrOrFile(outputContainer) != OK)
@@ -749,6 +752,7 @@ int _WriteDebugInfo(graphP theGraph, strOrFileP outputContainer)
 {
     int v, e, EsizeOccupied;
     char lineBuf[MAXLINE + 1];
+
     memset(lineBuf, '\0', (MAXLINE + 1) * sizeof(char));
 
     if (theGraph == NULL || sf_ValidateStrOrFile(outputContainer) != OK)
@@ -888,7 +892,8 @@ int _WriteDebugInfo(graphP theGraph, strOrFileP outputContainer)
 
 int gp_Write(graphP theGraph, char const *FileName, int Mode)
 {
-    int RetVal;
+    int RetVal = OK;
+
     strOrFileP outputContainer = NULL;
 
     if (theGraph == NULL || FileName == NULL)
@@ -928,7 +933,8 @@ int gp_Write(graphP theGraph, char const *FileName, int Mode)
  ********************************************************************/
 int gp_WriteToString(graphP theGraph, char **pOutputStr, int Mode)
 {
-    int RetVal;
+    int RetVal = OK;
+
     strOrFileP outputContainer = NULL;
 
     if (theGraph == NULL || pOutputStr == NULL)
