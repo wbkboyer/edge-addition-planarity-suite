@@ -16,13 +16,22 @@ See the LICENSE.TXT file for licensing information.
 /********************************************************************
  sf_New()
 
- Accepts an input string (do not pass pointer to output string; if you wish to
- create a strOrFile OUTPUT_CONTAINER that will be used to write to string,
- create it using sf_New(NULL, NULL, WRITETEXT)) XOR the name of a file filename.
+ The string-or-file object supports two IO modes: reading input (ioMode ==
+ READTEXT), and writing output (ioMode == WRITETEXT). The string-or-file object
+ also may only contain a string (stored using a strBufP to leverage its string
+ manipulation functions) XOR a FILE *.
 
- Note that when used as an input container, we're appending theStr to the
- internal strBuf; the original pointer is not manipulated, hence the const
- qualifiers.
+ For the input mode, sf_New() should receive either a non-NULL (and preferably
+ nonempty) input string (which the container *does not own*, but rather copies
+ into the internal strBufP) or a non-NULL and nonempty fileName (which may
+ correspond to stdin).
+
+ For the output mode, theStr *must* be NULL because, if the fileName is also
+ NULL, then the desired output string will be constructed internally in the
+ string-or-file object and can be obtained after all output has been written
+ using sf_takeTheStr(). If the fileName is non-NULL and nonempty (which may
+ correspond to stdout or stderr), then the output will go to the output stream
+ and an output string will not be constructured.
 
  Returns the allocated string-or-file container, or NULL on error.
  ********************************************************************/
