@@ -6,7 +6,7 @@ See the LICENSE.TXT file for licensing information.
 
 #include "planarity.h"
 
-void GetNumberIfZero(int *pNum, char const *prompt, int min, int max);
+int GetNumberIfZero(int *pNum, char const *prompt, int min, int max);
 void ReinitializeGraph(graphP *pGraph, int ReuseGraphs, char command);
 graphP MakeGraph(int Size, char command);
 
@@ -47,7 +47,7 @@ int RandomGraphs(char const *const commandString, int NumGraphs, int SizeOfGraph
     char messageContents[MAXLINE + 1];
     char theFileName[FILENAMEMAXLENGTH + 1];
 
-    memset(ObstructionMinorFreqs, 0, NUM_MINORS);
+    memset(ObstructionMinorFreqs, 0, NUM_MINORS * sizeof(int));
     memset(messageContents, '\0', (MAXLINE + 1));
     memset(theFileName, '\0', (FILENAMEMAXLENGTH + 1));
 
@@ -63,18 +63,16 @@ int RandomGraphs(char const *const commandString, int NumGraphs, int SizeOfGraph
         return Result;
     }
 
-    GetNumberIfZero(&NumGraphs, "Enter number of graphs to generate:", 1, 1000000000);
-    if (NumGraphs == 0)
+    if ((Result = GetNumberIfZero(&NumGraphs, "Enter number of graphs to generate:", 1, 1000000000)) != OK)
     {
-        ErrorMessage("Invalid value for NumGraphs specified; aborting.\n");
-        return NOTOK;
+        ErrorMessage("Encountered unrecoverable error when prompting for NumGraphs.\n");
+        return Result;
     }
 
-    GetNumberIfZero(&SizeOfGraphs, "Enter size of graphs:", 1, 10000);
-    if (SizeOfGraphs == 0)
+    if ((Result = GetNumberIfZero(&SizeOfGraphs, "Enter size of graphs:", 1, 10000)) != OK)
     {
-        ErrorMessage("Invalid value for SizeOfGraphs specified; aborting.\n");
-        return NOTOK;
+        ErrorMessage("Encountered unrecoverable error when prompting for SizeOfGraphs.\n");
+        return Result;
     }
 
     theGraph = MakeGraph(SizeOfGraphs, command);
@@ -86,10 +84,6 @@ int RandomGraphs(char const *const commandString, int NumGraphs, int SizeOfGraph
 
         return NOTOK;
     }
-
-    // Initialize a secondary statistics array
-    for (K = 0; K < NUM_MINORS; K++)
-        ObstructionMinorFreqs[K] = 0;
 
     if (outfileName != NULL || (tolower(OrigOut) == 'y' && tolower(OrigOutFormat) == 'g'))
     {
@@ -426,7 +420,7 @@ int RandomGraphs(char const *const commandString, int NumGraphs, int SizeOfGraph
  it is not.
  ****************************************************************************/
 
-void GetNumberIfZero(int *pNum, char const *prompt, int min, int max)
+int GetNumberIfZero(int *pNum, char const *prompt, int min, int max)
 {
     char lineBuff[MAXLINE + 1];
 
@@ -435,24 +429,29 @@ void GetNumberIfZero(int *pNum, char const *prompt, int min, int max)
     if (pNum == NULL)
     {
         ErrorMessage("Unable to get number, as pointer to int is NULL.\n");
-        return;
+        return NOTOK;
     }
+
     if (prompt == NULL || strlen(prompt) == 0)
     {
         ErrorMessage("Invalid prompt supplied.\n");
-        return;
+        return NOTOK;
     }
 
-    if (*pNum == 0)
+    while (*pNum == 0)
     {
         Prompt(prompt);
-        if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
-            strlen(lineBuff) == 0 ||
+        if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
+        {
+            ErrorMessage("Unable to read integer choice from stdin.\n");
+            return NOTOK;
+        }
+
+        if (strlen(lineBuff) == 0 ||
             sscanf(lineBuff, " %d", pNum) != 1)
         {
             ErrorMessage("Invalid integer choice.\n");
             (*pNum) = 0;
-            return;
         }
     }
 
@@ -469,6 +468,8 @@ void GetNumberIfZero(int *pNum, char const *prompt, int min, int max)
         sprintf(messageContents, "Number out of range [%d, %d]; changed to %d\n", min, max, *pNum);
         ErrorMessage(messageContents);
     }
+
+    return OK;
 }
 
 /****************************************************************************
@@ -554,11 +555,10 @@ int RandomGraph(char const *const commandString, int extraEdges, int numVertices
         return Result;
     }
 
-    GetNumberIfZero(&numVertices, "Enter number of vertices:", 1, 1000000);
-    if (numVertices == 0)
+    if ((Result = GetNumberIfZero(&numVertices, "Enter number of vertices:", 1, 1000000) != OK))
     {
-        ErrorMessage("Invalid value for numVertices specified; aborting.\n");
-        return NOTOK;
+        ErrorMessage("Encountered unrecoverable error when prompting for numVertices.\n");
+        return Result;
     }
 
     if ((theGraph = MakeGraph(numVertices, command)) == NULL)
@@ -613,27 +613,29 @@ int RandomGraph(char const *const commandString, int extraEdges, int numVertices
 
         if (!getQuietModeSetting())
         {
-            Prompt("Do you want to save the generated graph in edge list format (y/n)? ");
             do
             {
+                Prompt("Do you want to save the generated graph in edge list format (y/n)? ");
                 if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
                 {
-                    ErrorMessage("Unable to read from stdin; aborting.\n");
-                    return NOTOK;
+                    ErrorMessage("Unable to read user input to indicate whether to save edge list format from stdin.\n");
+                    Result = NOTOK;
+                    break;
                 }
 
                 if (strlen(lineBuff) != 1 ||
                     sscanf(lineBuff, " %c", &saveEdgeListFormat) != 1 ||
                     !strchr(YESNOCHOICECHARS, saveEdgeListFormat))
+                {
                     ErrorMessage("Invalid choice whether to save graph in edge list format.\n");
+                    continue;
+                }
+
+                saveEdgeListFormat = (char)tolower(saveEdgeListFormat);
             } while (!strchr(YESNOCHOICECHARS, saveEdgeListFormat));
-
-            saveEdgeListFormat = (char)tolower(saveEdgeListFormat);
         }
-        else
-            saveEdgeListFormat = 'n';
 
-        if (saveEdgeListFormat == 'y')
+        if ((Result == OK || Result == NONEMBEDDABLE) && saveEdgeListFormat == 'y')
         {
             char theFileName[MAXLINE + 1];
 
@@ -663,7 +665,7 @@ int RandomGraph(char const *const commandString, int extraEdges, int numVertices
         }
     }
     else
-        ErrorMessage("Failure occurred");
+        ErrorMessage("Failure occurred.\n");
 
     gp_Free(&theGraph);
     gp_Free(&origGraph);

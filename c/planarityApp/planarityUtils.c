@@ -19,80 +19,162 @@ char Mode = 'r',
 
 int Reconfigure(void)
 {
+    int Result = OK;
+
     char lineBuff[MAXLINE + 1];
 
     memset(lineBuff, '\0', (MAXLINE + 1));
 
-    Prompt("\nDo you want to \n"
-           "  Randomly generate graphs (r),\n"
-           "  Specify a graph (s),\n"
-           "  Randomly generate a maximal planar graph (m), or\n"
-           "  Randomly generate a non-planar graph (n)?\n\t");
+    do
+    {
+        Prompt("\nDo you want to \n"
+               "  Randomly generate graphs (r),\n"
+               "  Specify a graph (s),\n"
+               "  Randomly generate a maximal planar graph (m), or\n"
+               "  Randomly generate a non-planar graph (n)?\n\t");
 
-    if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
-        strlen(lineBuff) != 1 ||
-        sscanf(lineBuff, " %c", &Mode) != 1 ||
-        !strchr("rsmn", tolower(Mode)))
-        return NOTOK;
+        if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
+        {
+            ErrorMessage("Unable to fetch reconfigure choice from stdin.\n");
+            Result = NOTOK;
+            break;
+        }
 
-    Mode = (char)tolower(Mode);
+        if (strlen(lineBuff) != 1 ||
+            sscanf(lineBuff, " %c", &Mode) != 1 ||
+            !strchr("rsmn", tolower(Mode)))
+        {
+            ErrorMessage("Invalid choice for Mode.\n");
+            continue;
+        }
 
-    if (Mode == 'r')
+        Mode = (char)tolower(Mode);
+    } while (!strchr("rsmn", Mode));
+
+    if (Result == OK && Mode == 'r')
     {
         Message("\nNOTE: The directories for the graphs you want must exist.\n\n");
 
-        Prompt("Do you want original graphs in directory 'random'? (y/n) ");
-        if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
-            strlen(lineBuff) != 1 ||
-            sscanf(lineBuff, " %c", &OrigOut) != 1 ||
-            !strchr(YESNOCHOICECHARS, OrigOut))
-            return NOTOK;
-
-        OrigOut = (char)tolower(OrigOut);
-
-        if (OrigOut == 'y')
+        do
         {
-            Prompt("Do you want to output generated graphs to Adjacency List (last 10 only) or to G6 (all)? (a/g) ");
-            if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
-                strlen(lineBuff) != 1 ||
-                sscanf(lineBuff, " %c", &OrigOutFormat) != 1 ||
-                !strchr("aAgG", OrigOutFormat))
-                return NOTOK;
+            Prompt("Do you want original graphs in directory 'random'? (y/n) ");
+            if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
+            {
+                ErrorMessage("Unable to fetch choice from stdin.\n");
+                Result = NOTOK;
+                break;
+            }
 
-            OrigOutFormat = (char)tolower(OrigOutFormat);
+            if (strlen(lineBuff) != 1 ||
+                sscanf(lineBuff, " %c", &OrigOut) != 1 ||
+                !strchr(YESNOCHOICECHARS, OrigOut))
+            {
+                ErrorMessage("Invalid choice.\n");
+                continue;
+            }
+
+            OrigOut = (char)tolower(OrigOut);
+        } while (!strchr(YESNOCHOICECHARS, OrigOut));
+
+        if (Result == OK && OrigOut == 'y')
+        {
+            do
+            {
+                Prompt("Do you want to output generated graphs to Adjacency List (last 10 only) or to G6 (all)? (a/g) ");
+                if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
+                {
+                    ErrorMessage("Unable to fetch choice from stdin.\n");
+                    Result = NOTOK;
+                    break;
+                }
+
+                if (strlen(lineBuff) != 1 ||
+                    sscanf(lineBuff, " %c", &OrigOutFormat) != 1 ||
+                    !strchr("aAgG", OrigOutFormat))
+                {
+                    ErrorMessage("Invalid choice.\n");
+                    continue;
+                }
+
+                OrigOutFormat = (char)tolower(OrigOutFormat);
+            } while (!strchr("aAgG", OrigOutFormat));
         }
 
-        Prompt("Do you want adj. matrix of embeddable graphs in directory 'embedded' (last 10 max))? (y/n) ");
-        if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
-            strlen(lineBuff) != 1 ||
-            sscanf(lineBuff, " %c", &EmbeddableOut) != 1 ||
-            !strchr(YESNOCHOICECHARS, EmbeddableOut))
-            return NOTOK;
+        if (Result == OK)
+        {
+            do
+            {
+                Prompt("Do you want adj. matrix of embeddable graphs in directory 'embedded' (last 10 max))? (y/n) ");
+                if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
+                {
+                    ErrorMessage("Unable to fetch choice from stdin.\n");
+                    Result = NOTOK;
+                    break;
+                }
+                if (strlen(lineBuff) != 1 ||
+                    sscanf(lineBuff, " %c", &EmbeddableOut) != 1 ||
+                    !strchr(YESNOCHOICECHARS, EmbeddableOut))
+                {
+                    ErrorMessage("Invalid choice.\n");
+                    continue;
+                }
 
-        EmbeddableOut = (char)tolower(EmbeddableOut);
+                EmbeddableOut = (char)tolower(EmbeddableOut);
+            } while (!strchr(YESNOCHOICECHARS, EmbeddableOut));
+        }
 
-        Prompt("Do you want adj. matrix of obstructed graphs in directory 'obstructed' (last 10 max)? (y/n) ");
-        if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
-            ferror(stdin) || strlen(lineBuff) != 1 ||
-            sscanf(lineBuff, " %c", &ObstructedOut) != 1 ||
-            !strchr(YESNOCHOICECHARS, ObstructedOut))
-            return NOTOK;
+        if (Result == OK)
+        {
+            do
+            {
+                Prompt("Do you want adj. matrix of obstructed graphs in directory 'obstructed' (last 10 max)? (y/n) ");
+                if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
+                {
+                    ErrorMessage("Unable to fetch choice from stdin.\n");
+                    Result = NOTOK;
+                    break;
+                }
 
-        ObstructedOut = (char)tolower(ObstructedOut);
+                if (strlen(lineBuff) != 1 ||
+                    sscanf(lineBuff, " %c", &ObstructedOut) != 1 ||
+                    !strchr(YESNOCHOICECHARS, ObstructedOut))
+                {
+                    ErrorMessage("Invalid choice.\n");
+                    continue;
+                }
 
-        Prompt("Do you want adjacency list format of embeddings in directory 'adjlist' (last 10 max)? (y/n) ");
-        if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
-            strlen(lineBuff) != 1 ||
-            sscanf(lineBuff, " %c", &AdjListsForEmbeddingsOut) != 1 ||
-            !strchr(YESNOCHOICECHARS, AdjListsForEmbeddingsOut))
-            return NOTOK;
+                ObstructedOut = (char)tolower(ObstructedOut);
+            } while (!strchr(YESNOCHOICECHARS, ObstructedOut));
+        }
 
-        AdjListsForEmbeddingsOut = (char)tolower(AdjListsForEmbeddingsOut);
+        if (Result == OK)
+        {
+            do
+            {
+                Prompt("Do you want adjacency list format of embeddings in directory 'adjlist' (last 10 max)? (y/n) ");
+                if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
+                {
+                    ErrorMessage("Unable to fetch choice from stdin.\n");
+                    Result = NOTOK;
+                    break;
+                }
+
+                if (strlen(lineBuff) != 1 ||
+                    sscanf(lineBuff, " %c", &AdjListsForEmbeddingsOut) != 1 ||
+                    !strchr(YESNOCHOICECHARS, AdjListsForEmbeddingsOut))
+                {
+                    ErrorMessage("Invalid choice.\n");
+                    continue;
+                }
+
+                AdjListsForEmbeddingsOut = (char)tolower(AdjListsForEmbeddingsOut);
+            } while (!strchr(YESNOCHOICECHARS, AdjListsForEmbeddingsOut));
+        }
     }
 
     FlushConsole(stdout);
 
-    return OK;
+    return Result;
 }
 
 int GetLineFromStdin(char *lineBuff, int lineBuffSize)
@@ -741,13 +823,20 @@ char *ConstructInputFilename(char const *infileName)
         do
         {
             Prompt("Enter graph file name: ");
+            if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
+            {
+                ErrorMessage("Unable to read graph file name from stdin.\n");
+                if (fileNameFormat != NULL)
+                    free(fileNameFormat);
+                return NULL;
+            }
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
-            if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
-                strlen(lineBuff) == 0 ||
+            if (strlen(lineBuff) == 0 || strlen(lineBuff) > FILENAMEMAXLENGTH ||
                 sscanf(lineBuff, fileNameFormat, theFileName) != 1)
             {
-                ErrorMessage("Unable to read input filename.\n");
+                ErrorMessage("Invalid input filename.\n");
                 continue;
             }
 #pragma GCC diagnostic pop

@@ -336,11 +336,19 @@ int outputTestAllGraphsResults(char command, char modifier, testAllStatsP stats,
 
     resultsStr = (char *)malloc(
         (
-            4 + numCharsToReprNumGraphsRead +
-            1 + numCharsToReprNumOK +
-            1 + numCharsToReprNumNONEMBEDDABLE +
-            1 + 8 + // either ERROR or SUCCESS, so the longer of which is 7 + 1 chars
-            3) *
+            1 + // - char
+            1 + // command char
+            1 + // optional modifier char
+            1 + // space char
+            numCharsToReprNumGraphsRead +
+            1 + // space char
+            numCharsToReprNumOK +
+            1 + // space char
+            numCharsToReprNumNONEMBEDDABLE +
+            1 + // space char
+            7 + // either ERROR or SUCCESS, so the longer of which is 7 chars
+            3   // (carriage return,) newline and null terminator
+            ) *
         sizeof(char));
     if (resultsStr == NULL)
     {

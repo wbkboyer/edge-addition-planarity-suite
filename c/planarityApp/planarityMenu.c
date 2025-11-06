@@ -67,10 +67,17 @@ int menu(void)
                 "\n");
 
             Prompt("Enter Choice: ");
+
+            if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
+            {
+                ErrorMessage("Unable to fetch menu choice from stdin; exiting.\n");
+                Result = NOTOK;
+                break;
+            }
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
-            if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
-                strlen(lineBuff) == 0 || strlen(lineBuff) > 2 ||
+            if (strlen(lineBuff) == 0 || strlen(lineBuff) > 2 ||
                 sscanf(lineBuff, choiceStringFormat, choiceString) != 1)
             {
                 ErrorMessage("Invalid input; please retry.\n");
@@ -78,34 +85,36 @@ int menu(void)
             }
 #pragma GCC diagnostic pop
 
-            if (strncmp(choiceString, "h", 1) == 0)
+            choiceString[0] = (char)tolower(choiceString[0]);
+            choiceString[1] = (char)tolower(choiceString[1]);
+
+            if (strcmp(choiceString, "h") == 0)
                 helpMessage(NULL);
 
-            else if (strncmp(choiceString, "r", 1) == 0)
+            else if (strcmp(choiceString, "r") == 0)
             {
                 if (Reconfigure() != OK)
-                    ErrorMessage("Invalid user input for reconfigure; press 'r' again to retry reconfiguration.\n");
+                {
+                    ErrorMessage("Encountered unrecoverable error when reconfiguring; exiting.\n");
+                    Result = NOTOK;
+                    break;
+                }
 
                 continue;
             }
 
-            else if (strncmp(choiceString, "x", 1) == 0)
+            else if (strcmp(choiceString, "x") == 0)
             {
-                // TODO: Should I even still emit an error at the menu
-                // level, since there's other layers of error messaging?
                 if ((Result = TransformGraphMenu()) != OK)
                     ErrorMessage("Transform Graph Menu emitted an error.\n");
             }
-
-            else if (strncmp(choiceString, "t", 1) == 0)
+            else if (strcmp(choiceString, "t") == 0)
             {
-                // TODO: Should I even still emit an error at the menu
-                // level, since there's other layers of error messaging?
                 if ((Result = TestAllGraphsMenu()) != OK)
                     ErrorMessage("Test All Graphs Menu emitted an error.\n");
             }
 
-            else if (strncmp(choiceString, "q", 1) != 0)
+            else if (strcmp(choiceString, "q") != 0)
             {
                 commandString = choiceString;
                 if (GetCommandAndOptionalModifier(commandString, &command, NULL) != OK)
@@ -149,8 +158,6 @@ int menu(void)
                 Prompt("\nPress return key to continue...");
                 if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
                 {
-                    // TODO: How should I handle this error, if not to exit out
-                    // of menu?
                     ErrorMessage("Unable to fetch from stdin; exiting.\n");
                     Result = NOTOK;
                     break;
@@ -159,7 +166,7 @@ int menu(void)
                 Message("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
                 FlushConsole(stdout);
             }
-        } while (strncmp(choiceString, "q", 1) != 0);
+        } while (strcmp(choiceString, "q") != 0);
     }
 
     // Certain debuggers don't terminate correctly with pending output content
@@ -212,14 +219,19 @@ int TransformGraphMenu(void)
     do
     {
         Prompt("Enter input filename:\n");
+        if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
+        {
+            ErrorMessage("Unable to read input filename from stdin.\n");
+            Result = NOTOK;
+            break;
+        }
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
-        if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
-            strlen(lineBuff) == 0 ||
+        if (strlen(lineBuff) == 0 || strlen(lineBuff) > FILENAMEMAXLENGTH ||
             sscanf(lineBuff, fileNameFormat, infileName) != 1)
-
         {
-            ErrorMessage("Unable to read input filename.\n");
+            ErrorMessage("Invalid input filename.\n");
             continue;
         }
 #pragma GCC diagnostic pop
@@ -231,38 +243,57 @@ int TransformGraphMenu(void)
         }
     } while (strlen(infileName) == 0);
 
-    do
+    if (Result == OK)
     {
-        Prompt("Enter output filename, or type \"stdout\" to output to console:\n");
+        do
+        {
+            Prompt("Enter output filename, or type \"stdout\" to output to console:\n");
+            if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
+            {
+                ErrorMessage("Unable to read output filename from stdin.\n");
+                Result = NOTOK;
+                break;
+            }
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
-        if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
-            strlen(lineBuff) == 0 ||
-            sscanf(lineBuff, fileNameFormat, outfileName) != 1)
-        {
-            ErrorMessage("Unable to read output filename.\n");
-            continue;
-        }
+            if (strlen(lineBuff) == 0 || strlen(lineBuff) > FILENAMEMAXLENGTH ||
+                sscanf(lineBuff, fileNameFormat, outfileName) != 1)
+            {
+                ErrorMessage("Invalid output filename.\n");
+                continue;
+            }
 #pragma GCC diagnostic pop
-    } while (strlen(outfileName) == 0);
+        } while (strlen(outfileName) == 0);
+    }
 
-    do
+    if (Result == OK)
     {
-        Message(GetSupportedOutputChoices());
-        Prompt("Enter output format: ");
-        if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
-            strlen(lineBuff) != 1 ||
-            sscanf(lineBuff, " %c", &outputFormat) != 1 ||
-            !strchr(GetSupportedOutputFormats(), tolower(outputFormat)))
+        do
         {
-            ErrorMessage("Invalid choice for output format.\n");
-            continue;
-        }
+            Message(GetSupportedOutputChoices());
+            Prompt("Enter output format: ");
+            if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
+            {
+                ErrorMessage("Unable to read output format from stdin.\n");
+                Result = NOTOK;
+                break;
+            }
 
-        sprintf(commandStr, "-%c", (char)tolower(outputFormat));
-    } while (strlen(commandStr) == 0);
+            if (strlen(lineBuff) != 1 ||
+                sscanf(lineBuff, " %c", &outputFormat) != 1 ||
+                !strchr(GetSupportedOutputFormats(), tolower(outputFormat)))
+            {
+                ErrorMessage("Invalid choice for output format.\n");
+                continue;
+            }
 
-    Result = TransformGraph(commandStr, infileName, NULL, NULL, outfileName, NULL);
+            sprintf(commandStr, "-%c", (char)tolower(outputFormat));
+        } while (strlen(commandStr) == 0);
+    }
+
+    if (Result == OK)
+        Result = TransformGraph(commandStr, infileName, NULL, NULL, outfileName, NULL);
 
     if (fileNameFormat != NULL)
         free(fileNameFormat);
@@ -330,13 +361,19 @@ int TestAllGraphsMenu(void)
     do
     {
         Prompt("Enter input filename:\n");
+        if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
+        {
+            ErrorMessage("Unable to read input filename from stdin.\n");
+            Result = NOTOK;
+            break;
+        }
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
-        if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
-            strlen(lineBuff) == 0 ||
+        if (strlen(lineBuff) == 0 || strlen(lineBuff) > FILENAMEMAXLENGTH ||
             sscanf(lineBuff, fileNameFormat, infileName) != 1)
         {
-            ErrorMessage("Unable to read input filename.\n");
+            ErrorMessage("Invalid input filename.\n");
             continue;
         }
 #pragma GCC diagnostic pop
@@ -348,38 +385,57 @@ int TestAllGraphsMenu(void)
         }
     } while (strlen(infileName) == 0);
 
-    do
+    if (Result == OK)
     {
-        Prompt("Enter output filename, or type \"stdout\" to output to console:\n");
+        do
+        {
+            Prompt("Enter output filename, or type \"stdout\" to output to console:\n");
+            if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
+            {
+                ErrorMessage("Unable to read output filename from stdin.\n");
+                Result = NOTOK;
+                break;
+            }
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
-        if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
-            strlen(lineBuff) == 0 ||
-            sscanf(lineBuff, fileNameFormat, outfileName) != 1)
-        {
-            ErrorMessage("Unable to read output filename.\n");
-            continue;
-        }
+            if (strlen(lineBuff) == 0 || strlen(lineBuff) > FILENAMEMAXLENGTH ||
+                sscanf(lineBuff, fileNameFormat, outfileName) != 1)
+            {
+                ErrorMessage("Invalid output filename.\n");
+                continue;
+            }
 #pragma GCC diagnostic pop
-    } while (strlen(outfileName) == 0);
+        } while (strlen(outfileName) == 0);
+    }
 
-    do
+    if (Result == OK)
     {
-        Message(GetAlgorithmSpecifiers());
-        Prompt("Enter algorithm specifier (with optional modifier): ");
+        do
+        {
+            Message(GetAlgorithmSpecifiers());
+            Prompt("Enter algorithm specifier (with optional modifier): ");
+            if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
+            {
+                ErrorMessage("Unable to read command and optional modifier from stdin.\n");
+                Result = NOTOK;
+                break;
+            }
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
-        if (GetLineFromStdin(lineBuff, MAXLINE) != OK ||
-            strlen(lineBuff) == 0 || strlen(lineBuff) > 2 ||
-            sscanf(lineBuff, commandStringFormat, commandString) != 1)
-        {
-            ErrorMessage("Unable to command and optional modifier.\n");
-            continue;
-        }
+            if (strlen(lineBuff) == 0 || strlen(lineBuff) > 2 ||
+                sscanf(lineBuff, commandStringFormat, commandString) != 1)
+            {
+                ErrorMessage("Invalid command and optional modifier.\n");
+                continue;
+            }
 #pragma GCC diagnostic pop
-    } while (strlen(commandString) == 0);
+        } while (strlen(commandString) == 0);
+    }
 
-    Result = TestAllGraphs(commandString, infileName, outfileName, NULL);
+    if (Result == OK)
+        Result = TestAllGraphs(commandString, infileName, outfileName, NULL);
 
     if (commandStringFormat != NULL)
         free(commandStringFormat);
