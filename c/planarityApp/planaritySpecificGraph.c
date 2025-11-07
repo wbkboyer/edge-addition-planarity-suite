@@ -66,26 +66,37 @@ int SpecificGraph(
         }
         else
         {
-            do
+            while (1)
             {
                 infileName = ConstructInputFilename(infileName);
-                if (infileName != NULL && strncmp(infileName, "stdin", strlen("stdin")) == 0)
+                if (infileName == NULL || strlen(infileName) == 0)
+                {
+                    ErrorMessage("Unrecoverable error while trying to ConstructInputFilename().\n");
+                    Result = NOTOK;
+                    break;
+                }
+                else if (strncmp(infileName, "stdin", strlen("stdin")) == 0)
                 {
                     ErrorMessage("\n\tPlease choose an input file path: stdin not supported from menu.\n\n");
                     infileName = NULL;
                 }
-            } while (infileName == NULL || strlen(infileName) == 0);
+                else
+                    break;
+            }
         }
     }
 
-    // Create the graph and, if needed, attach the correct algorithm to it
-    theGraph = gp_New();
+    if (Result == OK)
+    {
+        // Create the graph and, if needed, attach the correct algorithm to it
+        theGraph = gp_New();
 
-    // Read the graph into memory
-    if (inputStr == NULL)
-        Result = gp_Read(theGraph, infileName);
-    else
-        Result = gp_ReadFromString(theGraph, inputStr);
+        // Read the graph into memory
+        if (inputStr == NULL)
+            Result = gp_Read(theGraph, infileName);
+        else
+            Result = gp_ReadFromString(theGraph, inputStr);
+    }
 
     // If there was an unrecoverable error, report it and exit early.
     if (Result != OK)

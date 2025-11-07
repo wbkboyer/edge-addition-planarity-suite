@@ -25,7 +25,7 @@ int Reconfigure(void)
 
     memset(lineBuff, '\0', (MAXLINE + 1));
 
-    do
+    while (1)
     {
         Prompt("\nDo you want to \n"
                "  Randomly generate graphs (r),\n"
@@ -43,19 +43,19 @@ int Reconfigure(void)
         if (strlen(lineBuff) != 1 ||
             sscanf(lineBuff, " %c", &Mode) != 1 ||
             !strchr("rsmn", tolower(Mode)))
-        {
             ErrorMessage("Invalid choice for Mode.\n");
-            continue;
+        else
+        {
+            Mode = (char)tolower(Mode);
+            break;
         }
-
-        Mode = (char)tolower(Mode);
-    } while (!strchr("rsmn", Mode));
+    }
 
     if (Result == OK && Mode == 'r')
     {
         Message("\nNOTE: The directories for the graphs you want must exist.\n\n");
 
-        do
+        while (1)
         {
             Prompt("Do you want original graphs in directory 'random'? (y/n) ");
             if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
@@ -68,17 +68,17 @@ int Reconfigure(void)
             if (strlen(lineBuff) != 1 ||
                 sscanf(lineBuff, " %c", &OrigOut) != 1 ||
                 !strchr(YESNOCHOICECHARS, OrigOut))
-            {
                 ErrorMessage("Invalid choice.\n");
-                continue;
+            else
+            {
+                OrigOut = (char)tolower(OrigOut);
+                break;
             }
-
-            OrigOut = (char)tolower(OrigOut);
-        } while (!strchr(YESNOCHOICECHARS, OrigOut));
+        }
 
         if (Result == OK && OrigOut == 'y')
         {
-            do
+            while (1)
             {
                 Prompt("Do you want to output generated graphs to Adjacency List (last 10 only) or to G6 (all)? (a/g) ");
                 if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
@@ -91,18 +91,18 @@ int Reconfigure(void)
                 if (strlen(lineBuff) != 1 ||
                     sscanf(lineBuff, " %c", &OrigOutFormat) != 1 ||
                     !strchr("aAgG", OrigOutFormat))
-                {
                     ErrorMessage("Invalid choice.\n");
-                    continue;
+                else
+                {
+                    OrigOutFormat = (char)tolower(OrigOutFormat);
+                    break;
                 }
-
-                OrigOutFormat = (char)tolower(OrigOutFormat);
-            } while (!strchr("aAgG", OrigOutFormat));
+            }
         }
 
         if (Result == OK)
         {
-            do
+            while (1)
             {
                 Prompt("Do you want adj. matrix of embeddable graphs in directory 'embedded' (last 10 max))? (y/n) ");
                 if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
@@ -114,18 +114,18 @@ int Reconfigure(void)
                 if (strlen(lineBuff) != 1 ||
                     sscanf(lineBuff, " %c", &EmbeddableOut) != 1 ||
                     !strchr(YESNOCHOICECHARS, EmbeddableOut))
-                {
                     ErrorMessage("Invalid choice.\n");
-                    continue;
+                else
+                {
+                    EmbeddableOut = (char)tolower(EmbeddableOut);
+                    break;
                 }
-
-                EmbeddableOut = (char)tolower(EmbeddableOut);
-            } while (!strchr(YESNOCHOICECHARS, EmbeddableOut));
+            }
         }
 
         if (Result == OK)
         {
-            do
+            while (1)
             {
                 Prompt("Do you want adj. matrix of obstructed graphs in directory 'obstructed' (last 10 max)? (y/n) ");
                 if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
@@ -138,18 +138,18 @@ int Reconfigure(void)
                 if (strlen(lineBuff) != 1 ||
                     sscanf(lineBuff, " %c", &ObstructedOut) != 1 ||
                     !strchr(YESNOCHOICECHARS, ObstructedOut))
-                {
                     ErrorMessage("Invalid choice.\n");
-                    continue;
+                else
+                {
+                    ObstructedOut = (char)tolower(ObstructedOut);
+                    break;
                 }
-
-                ObstructedOut = (char)tolower(ObstructedOut);
-            } while (!strchr(YESNOCHOICECHARS, ObstructedOut));
+            }
         }
 
         if (Result == OK)
         {
-            do
+            while (1)
             {
                 Prompt("Do you want adjacency list format of embeddings in directory 'adjlist' (last 10 max)? (y/n) ");
                 if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
@@ -162,13 +162,13 @@ int Reconfigure(void)
                 if (strlen(lineBuff) != 1 ||
                     sscanf(lineBuff, " %c", &AdjListsForEmbeddingsOut) != 1 ||
                     !strchr(YESNOCHOICECHARS, AdjListsForEmbeddingsOut))
-                {
                     ErrorMessage("Invalid choice.\n");
-                    continue;
+                else
+                {
+                    AdjListsForEmbeddingsOut = (char)tolower(AdjListsForEmbeddingsOut);
+                    break;
                 }
-
-                AdjListsForEmbeddingsOut = (char)tolower(AdjListsForEmbeddingsOut);
-            } while (!strchr(YESNOCHOICECHARS, AdjListsForEmbeddingsOut));
+            }
         }
     }
 
@@ -794,6 +794,8 @@ char theFileName[FILENAMEMAXLENGTH + 1 + ALGORITHMNAMEMAXLENGTH + 1 + SUFFIXMAXL
 
 char *ConstructInputFilename(char const *infileName)
 {
+    int Result = OK;
+
     int numCharsToReprFILENAMEMAXLENGTH = 0;
     char const *fileNameFormatFormat = " %%%d[^\r\n]";
     char *fileNameFormat = NULL;
@@ -820,53 +822,64 @@ char *ConstructInputFilename(char const *infileName)
 #pragma GCC diagnostic pop
     if (infileName == NULL)
     {
-        do
+        while (1)
         {
             Prompt("Enter graph file name: ");
             if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
             {
                 ErrorMessage("Unable to read graph file name from stdin.\n");
-                if (fileNameFormat != NULL)
-                    free(fileNameFormat);
-                return NULL;
+                Result = NOTOK;
+                break;
             }
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
             if (strlen(lineBuff) == 0 || strlen(lineBuff) > FILENAMEMAXLENGTH ||
                 sscanf(lineBuff, fileNameFormat, theFileName) != 1)
-            {
                 ErrorMessage("Invalid input filename.\n");
-                continue;
-            }
 #pragma GCC diagnostic pop
-
-            if (strncmp(theFileName, "stdin", strlen("stdin")) != 0 && !strchr(theFileName, '.'))
+            else
             {
-                Message("Graph file name does not have extension; automatically appending \".txt\".\n");
-                strcat(theFileName, ".txt");
+                if (strncmp(theFileName, "stdin", strlen("stdin")) != 0 && !strchr(theFileName, '.'))
+                {
+                    Message("Graph file name does not have extension; automatically appending \".txt\".\n");
+                    if (strcat(theFileName, ".txt") == NULL)
+                    {
+                        ErrorMessage("Appending \".txt\" extension to theFileName using strcat() failed.\n");
+                        Result = NOTOK;
+                    }
+                }
+                break;
             }
-        } while (strlen(theFileName) == 0);
+        }
     }
     else
     {
         if (strlen(infileName) > FILENAMEMAXLENGTH)
         {
-            ErrorMessage("Filename is too long");
-            return NULL;
+            ErrorMessage("Filename is too long.\n");
+            Result = NOTOK;
         }
         else if (strlen(infileName) == 0)
         {
-            ErrorMessage("Filename is empty");
-            return NULL;
+            ErrorMessage("Filename is empty.\n");
+            Result = NOTOK;
         }
-        strcpy(theFileName, infileName);
+
+        if (Result == OK)
+        {
+            if (strcpy(theFileName, infileName) == NULL)
+            {
+                ErrorMessage("Copying infileName into theFileName using strcpy() failed.\n");
+                Result = NOTOK;
+            }
+        }
     }
 
     if (fileNameFormat != NULL)
         free(fileNameFormat);
 
-    return theFileName;
+    return Result != OK ? NULL : theFileName;
 }
 
 /****************************************************************************

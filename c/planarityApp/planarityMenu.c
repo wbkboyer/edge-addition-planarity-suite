@@ -52,7 +52,7 @@ int menu(void)
         sprintf(choiceStringFormat, choiceStringFormatFormat, COMMANDSTRINGMAXLENGTH);
 #pragma GCC diagnostic pop
 
-        do
+        while (1)
         {
             Message(GetProjectTitle());
 
@@ -113,8 +113,9 @@ int menu(void)
                 if ((Result = TestAllGraphsMenu()) != OK)
                     ErrorMessage("Test All Graphs Menu emitted an error.\n");
             }
-
-            else if (strcmp(choiceString, "q") != 0)
+            else if (strcmp(choiceString, "q") == 0)
+                break;
+            else
             {
                 commandString = choiceString;
                 if (GetCommandAndOptionalModifier(commandString, &command, NULL) != OK)
@@ -166,7 +167,7 @@ int menu(void)
                 Message("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
                 FlushConsole(stdout);
             }
-        } while (strcmp(choiceString, "q") != 0);
+        }
     }
 
     // Certain debuggers don't terminate correctly with pending output content
@@ -216,7 +217,7 @@ int TransformGraphMenu(void)
     sprintf(fileNameFormat, fileNameFormatFormat, FILENAMEMAXLENGTH);
 #pragma GCC diagnostic pop
 
-    do
+    while (1)
     {
         Prompt("Enter input filename:\n");
         if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
@@ -229,23 +230,22 @@ int TransformGraphMenu(void)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
         if (strlen(lineBuff) == 0 || strlen(lineBuff) > FILENAMEMAXLENGTH ||
-            sscanf(lineBuff, fileNameFormat, infileName) != 1)
-        {
+            sscanf(lineBuff, fileNameFormat, infileName) != 1 ||
+            strlen(infileName) == 0)
             ErrorMessage("Invalid input filename.\n");
-            continue;
-        }
 #pragma GCC diagnostic pop
-
-        if (strncmp(infileName, "stdin", strlen("stdin")) == 0)
+        else if (strncmp(infileName, "stdin", strlen("stdin")) == 0)
         {
             ErrorMessage("\n\tPlease choose an input file path: stdin not supported from menu.\n\n");
             memset(infileName, '\0', (FILENAMEMAXLENGTH + 1));
         }
-    } while (strlen(infileName) == 0);
+        else
+            break;
+    }
 
     if (Result == OK)
     {
-        do
+        while (1)
         {
             Prompt("Enter output filename, or type \"stdout\" to output to console:\n");
             if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
@@ -258,18 +258,18 @@ int TransformGraphMenu(void)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
             if (strlen(lineBuff) == 0 || strlen(lineBuff) > FILENAMEMAXLENGTH ||
-                sscanf(lineBuff, fileNameFormat, outfileName) != 1)
-            {
+                sscanf(lineBuff, fileNameFormat, outfileName) != 1 ||
+                strlen(outfileName) == 0)
                 ErrorMessage("Invalid output filename.\n");
-                continue;
-            }
+            else
+                break;
 #pragma GCC diagnostic pop
-        } while (strlen(outfileName) == 0);
+        }
     }
 
     if (Result == OK)
     {
-        do
+        while (1)
         {
             Message(GetSupportedOutputChoices());
             Prompt("Enter output format: ");
@@ -283,13 +283,18 @@ int TransformGraphMenu(void)
             if (strlen(lineBuff) != 1 ||
                 sscanf(lineBuff, " %c", &outputFormat) != 1 ||
                 !strchr(GetSupportedOutputFormats(), tolower(outputFormat)))
-            {
                 ErrorMessage("Invalid choice for output format.\n");
-                continue;
-            }
+            else
+            {
+                if (sprintf(commandStr, "-%c", (char)tolower(outputFormat)) < 1)
+                {
+                    ErrorMessage("Unable to construct commandStr.\n");
+                    Result = NOTOK;
+                }
 
-            sprintf(commandStr, "-%c", (char)tolower(outputFormat));
-        } while (strlen(commandStr) == 0);
+                break;
+            }
+        }
     }
 
     if (Result == OK)
@@ -358,7 +363,7 @@ int TestAllGraphsMenu(void)
     sprintf(fileNameFormat, fileNameFormatFormat, FILENAMEMAXLENGTH);
 #pragma GCC diagnostic pop
 
-    do
+    while (1)
     {
         Prompt("Enter input filename:\n");
         if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
@@ -371,23 +376,22 @@ int TestAllGraphsMenu(void)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
         if (strlen(lineBuff) == 0 || strlen(lineBuff) > FILENAMEMAXLENGTH ||
-            sscanf(lineBuff, fileNameFormat, infileName) != 1)
-        {
+            sscanf(lineBuff, fileNameFormat, infileName) != 1 ||
+            strlen(infileName) == 0)
             ErrorMessage("Invalid input filename.\n");
-            continue;
-        }
 #pragma GCC diagnostic pop
-
-        if (strncmp(infileName, "stdin", strlen("stdin")) == 0)
+        else if (strncmp(infileName, "stdin", strlen("stdin")) == 0)
         {
             ErrorMessage("\n\tPlease choose an input file path: stdin not supported from menu.\n\n");
             memset(infileName, '\0', (FILENAMEMAXLENGTH + 1));
         }
-    } while (strlen(infileName) == 0);
+        else
+            break;
+    }
 
     if (Result == OK)
     {
-        do
+        while (1)
         {
             Prompt("Enter output filename, or type \"stdout\" to output to console:\n");
             if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
@@ -400,18 +404,18 @@ int TestAllGraphsMenu(void)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
             if (strlen(lineBuff) == 0 || strlen(lineBuff) > FILENAMEMAXLENGTH ||
-                sscanf(lineBuff, fileNameFormat, outfileName) != 1)
-            {
+                sscanf(lineBuff, fileNameFormat, outfileName) != 1 ||
+                strlen(outfileName) == 0)
                 ErrorMessage("Invalid output filename.\n");
-                continue;
-            }
+            else
+                break;
 #pragma GCC diagnostic pop
-        } while (strlen(outfileName) == 0);
+        }
     }
 
     if (Result == OK)
     {
-        do
+        while (1)
         {
             Message(GetAlgorithmSpecifiers());
             Prompt("Enter algorithm specifier (with optional modifier): ");
@@ -425,13 +429,13 @@ int TestAllGraphsMenu(void)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
             if (strlen(lineBuff) == 0 || strlen(lineBuff) > 2 ||
-                sscanf(lineBuff, commandStringFormat, commandString) != 1)
-            {
+                sscanf(lineBuff, commandStringFormat, commandString) != 1 ||
+                strlen(commandString) == 0)
                 ErrorMessage("Invalid command and optional modifier.\n");
-                continue;
-            }
 #pragma GCC diagnostic pop
-        } while (strlen(commandString) == 0);
+            else
+                break;
+        }
     }
 
     if (Result == OK)

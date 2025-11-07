@@ -613,7 +613,7 @@ int RandomGraph(char const *const commandString, int extraEdges, int numVertices
 
         if (!getQuietModeSetting())
         {
-            do
+            while (1)
             {
                 Prompt("Do you want to save the generated graph in edge list format (y/n)? ");
                 if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
@@ -626,13 +626,13 @@ int RandomGraph(char const *const commandString, int extraEdges, int numVertices
                 if (strlen(lineBuff) != 1 ||
                     sscanf(lineBuff, " %c", &saveEdgeListFormat) != 1 ||
                     !strchr(YESNOCHOICECHARS, saveEdgeListFormat))
-                {
                     ErrorMessage("Invalid choice whether to save graph in edge list format.\n");
-                    continue;
+                else
+                {
+                    saveEdgeListFormat = (char)tolower(saveEdgeListFormat);
+                    break;
                 }
-
-                saveEdgeListFormat = (char)tolower(saveEdgeListFormat);
-            } while (!strchr(YESNOCHOICECHARS, saveEdgeListFormat));
+            }
         }
 
         if ((Result == OK || Result == NONEMBEDDABLE) && saveEdgeListFormat == 'y')

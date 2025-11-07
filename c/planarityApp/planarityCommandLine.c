@@ -686,26 +686,25 @@ int callRandomGraphs(int argc, char *argv[])
     char *commandString = NULL, *outfileName = NULL;
 
     if (argc < 5 || argc > 7)
-        return -1;
+        return NOTOK;
 
     if (strncmp(argv[2], "-q", 2) == 0)
     {
         if (argc < 6)
-            return -1;
+            return NOTOK;
+
         offset = 1;
     }
 
     if (argc > (6 + offset))
-        return -1;
+        return NOTOK;
 
     commandString = argv[2 + offset];
     NumGraphs = atoi(argv[3 + offset]);
     SizeOfGraphs = atoi(argv[4 + offset]);
 
     if (argc == (6 + offset))
-    {
         outfileName = argv[5 + offset];
-    }
 
     return RandomGraphs(commandString, NumGraphs, SizeOfGraphs, outfileName);
 }
@@ -721,21 +720,23 @@ int callSpecificGraph(int argc, char *argv[])
     int offset = 0;
 
     if (argc < 5)
-        return -1;
+        return NOTOK;
 
     if (strncmp(argv[2], "-q", 2) == 0)
     {
         if (argc < 6)
-            return -1;
+            return NOTOK;
+
         offset = 1;
     }
 
     if (argc > (6 + offset))
-        return -1;
+        return NOTOK;
 
     commandString = argv[2 + offset];
     infileName = argv[3 + offset];
     outfileName = argv[4 + offset];
+
     if (argc == 6 + offset)
         outfile2Name = argv[5 + offset];
 
@@ -753,20 +754,22 @@ int callRandomMaxPlanarGraph(int argc, char *argv[])
     char *outfileName = NULL, *outfile2Name = NULL;
 
     if (argc < 4)
-        return -1;
+        return NOTOK;
 
     if (strncmp(argv[2], "-q", 2) == 0)
     {
         if (argc < 5)
-            return -1;
+            return NOTOK;
+
         offset = 1;
     }
 
     if (argc > (5 + offset))
-        return -1;
+        return NOTOK;
 
     numVertices = atoi(argv[2 + offset]);
     outfileName = argv[3 + offset];
+
     if (argc == 5 + offset)
         outfile2Name = argv[4 + offset];
 
@@ -784,20 +787,22 @@ int callRandomNonplanarGraph(int argc, char *argv[])
     char *outfileName = NULL, *outfile2Name = NULL;
 
     if (argc < 4)
-        return -1;
+        return NOTOK;
 
     if (strncmp(argv[2], "-q", 2) == 0)
     {
         if (argc < 5)
-            return -1;
+            return NOTOK;
+
         offset = 1;
     }
 
     if (argc > (5 + offset))
-        return -1;
+        return NOTOK;
 
     numVertices = atoi(argv[2 + offset]);
     outfileName = argv[3 + offset];
+
     if (argc == 5 + offset)
         outfile2Name = argv[4 + offset];
 
@@ -818,17 +823,18 @@ int callTransformGraph(int argc, char *argv[])
     char *infileName = NULL, *outfileName = NULL;
 
     if (argc < 5)
-        return -1;
+        return NOTOK;
 
     if (argv[2][0] == '-' && argv[2][1] == 'q')
     {
         if (argc < 6)
-            return -1;
+            return NOTOK;
+
         offset = 1;
     }
 
     if (argc > (5 + offset))
-        return -1;
+        return NOTOK;
 
     commandString = argv[2 + offset];
 
@@ -857,17 +863,18 @@ int callTestAllGraphs(int argc, char *argv[])
     char *infileName = NULL, *outfileName = NULL;
 
     if (argc < 5)
-        return -1;
+        return NOTOK;
 
     if (argv[2][0] == '-' && argv[2][1] == 'q')
     {
         if (argc < 6)
-            return -1;
+            return NOTOK;
+
         offset = 1;
     }
 
     if (argc > (5 + offset))
-        return -1;
+        return NOTOK;
 
     commandString = argv[2 + offset];
 
