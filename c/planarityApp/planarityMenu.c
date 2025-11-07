@@ -233,7 +233,6 @@ int TransformGraphMenu(void)
             sscanf(lineBuff, fileNameFormat, infileName) != 1 ||
             strlen(infileName) == 0)
             ErrorMessage("Invalid input filename.\n");
-#pragma GCC diagnostic pop
         else if (strncmp(infileName, "stdin", strlen("stdin")) == 0)
         {
             ErrorMessage("\n\tPlease choose an input file path: stdin not supported from menu.\n\n");
@@ -241,6 +240,7 @@ int TransformGraphMenu(void)
         }
         else
             break;
+#pragma GCC diagnostic pop
     }
 
     if (Result == OK)
@@ -379,7 +379,6 @@ int TestAllGraphsMenu(void)
             sscanf(lineBuff, fileNameFormat, infileName) != 1 ||
             strlen(infileName) == 0)
             ErrorMessage("Invalid input filename.\n");
-#pragma GCC diagnostic pop
         else if (strncmp(infileName, "stdin", strlen("stdin")) == 0)
         {
             ErrorMessage("\n\tPlease choose an input file path: stdin not supported from menu.\n\n");
@@ -387,6 +386,7 @@ int TestAllGraphsMenu(void)
         }
         else
             break;
+#pragma GCC diagnostic pop
     }
 
     if (Result == OK)
@@ -432,9 +432,9 @@ int TestAllGraphsMenu(void)
                 sscanf(lineBuff, commandStringFormat, commandString) != 1 ||
                 strlen(commandString) == 0)
                 ErrorMessage("Invalid command and optional modifier.\n");
-#pragma GCC diagnostic pop
             else
                 break;
+#pragma GCC diagnostic pop
         }
     }
 

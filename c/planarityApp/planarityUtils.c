@@ -837,7 +837,6 @@ char *ConstructInputFilename(char const *infileName)
             if (strlen(lineBuff) == 0 || strlen(lineBuff) > FILENAMEMAXLENGTH ||
                 sscanf(lineBuff, fileNameFormat, theFileName) != 1)
                 ErrorMessage("Invalid input filename.\n");
-#pragma GCC diagnostic pop
             else
             {
                 if (strncmp(theFileName, "stdin", strlen("stdin")) != 0 && !strchr(theFileName, '.'))
@@ -851,6 +850,7 @@ char *ConstructInputFilename(char const *infileName)
                 }
                 break;
             }
+#pragma GCC diagnostic pop
         }
     }
     else
