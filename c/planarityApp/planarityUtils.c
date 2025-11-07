@@ -572,13 +572,13 @@ int GetCommandAndOptionalModifier(const char *commandString, char *command, char
 
     if (strlen(commandString) == 1)
     {
-        (*command) = tolower(commandString[0]);
+        (*command) = (char)tolower(commandString[0]);
     }
     else if (strlen(commandString) == 2)
     {
-        (*command) = tolower(commandString[0]);
+        (*command) = (char)tolower(commandString[0]);
         if (modifier != NULL)
-            (*modifier) = tolower(commandString[1]);
+            (*modifier) = (char)tolower(commandString[1]);
     }
 
     return OK;

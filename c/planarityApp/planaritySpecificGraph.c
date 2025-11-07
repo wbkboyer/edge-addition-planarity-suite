@@ -37,7 +37,7 @@ int SpecificGraph(
 {
     int Result = OK;
 
-    graphP theGraph, origGraph;
+    graphP theGraph = NULL, origGraph = NULL;
     platform_time start, end;
 
     char command = '\0', modifier = '\0';
