@@ -120,6 +120,10 @@ int legacyCommandLine(int argc, char *argv[])
             sprintf(messageContents, messageFormat, charsAvailForFilename, argv[1]);
 #pragma GCC diagnostic pop
             ErrorMessage(messageContents);
+
+            if (theGraph != NULL)
+                gp_Free(&theGraph);
+
             return -2;
         }
     }
