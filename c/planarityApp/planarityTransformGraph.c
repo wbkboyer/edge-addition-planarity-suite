@@ -20,7 +20,7 @@ int transformString(graphP theGraph, char *inputStr);
  outfileName - name of primary output file, or NULL to construct an output filename based on the input
  outputStr - pointer to string which we wish to use to store the transformation output
  ****************************************************************************/
-int TransformGraph(char const *commandString, char const *infileName, char *inputStr, int *outputBase, char const *outfileName, char **outputStr)
+int TransformGraph(char const *const commandString, char const *const infileName, char *inputStr, int *outputBase, char const *outfileName, char **outputStr)
 {
     int Result = OK;
     int outputFormat = -1;

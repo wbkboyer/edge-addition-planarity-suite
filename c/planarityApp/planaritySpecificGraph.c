@@ -8,7 +8,7 @@ See the LICENSE.TXT file for licensing information.
 
 /****************************************************************************
  SpecificGraph()
- command - a menu letter (e.g. p,d,o,2,3,4) indicating the algorithm to run on the specific graph
+ commandString - a string (e.g. p,d,o,2,3,3e,4) indicating the algorithm to run on the specific graph
  infilename - name of file to read, or NULL to cause the program to prompt the user for a filename
  outfilename - name of primary output file, or NULL to construct an output filename based on the input
  outfile2Name - name of a secondary output file, or NULL to suppress secondary output, or empty string
@@ -31,13 +31,30 @@ See the LICENSE.TXT file for licensing information.
  ****************************************************************************/
 
 int SpecificGraph(
-    char command,
+    char const *const commandString,
     char const *infileName, char *outfileName, char *outfile2Name,
     char *inputStr, char **pOutputStr, char **pOutput2Str)
 {
-    graphP theGraph, origGraph;
-    platform_time start, end;
     int Result = OK;
+
+    graphP theGraph = NULL, origGraph = NULL;
+    platform_time start, end;
+
+    char command = '\0', modifier = '\0';
+    int embedFlags = 0;
+
+    if (GetCommandAndOptionalModifier(commandString, &command, &modifier) != OK)
+    {
+        ErrorMessage("Unable to derive command and modifier from commandString.\n");
+        return NOTOK;
+    }
+
+    if (GetEmbedFlags(command, modifier, &embedFlags) != OK)
+    {
+        ErrorMessage("Unable to derive embedFlags from command and optional modifier character.\n");
+
+        return NOTOK;
+    }
 
     // Get the filename of the graph to test
     if (inputStr == NULL)
@@ -49,89 +66,91 @@ int SpecificGraph(
         }
         else
         {
-            do
+            while (1)
             {
                 infileName = ConstructInputFilename(infileName);
-                if (infileName != NULL && strncmp(infileName, "stdin", strlen("stdin")) == 0)
+                if (infileName == NULL || strlen(infileName) == 0)
                 {
+                    ErrorMessage("Unrecoverable error while trying to ConstructInputFilename().\n");
+                    Result = NOTOK;
+                    break;
+                }
+                else if (strncmp(infileName, "stdin", strlen("stdin")) == 0)
+                {
+                    // NOTE: When run from command-line or test, it is not
+                    // possible to have infileName being NULL and therefore
+                    // prompting the user for the input filename, so there's no
+                    // way you could have them enter stdin and reach this error
+                    // from command-line
                     ErrorMessage("\n\tPlease choose an input file path: stdin not supported from menu.\n\n");
                     infileName = NULL;
                 }
-            } while (infileName == NULL || strlen(infileName) == 0);
+                else
+                    break;
+            }
         }
     }
 
-    // Create the graph and, if needed, attach the correct algorithm to it
-    theGraph = gp_New();
-
-    // Read the graph into memory
-    if (inputStr == NULL)
+    if (Result == OK)
     {
-        Result = gp_Read(theGraph, infileName);
-    }
-    else
-    {
-        Result = gp_ReadFromString(theGraph, inputStr);
+        // Create the graph and, if needed, attach the correct algorithm to it
+        theGraph = gp_New();
+
+        // Read the graph into memory
+        if (inputStr == NULL)
+            Result = gp_Read(theGraph, infileName);
+        else
+            Result = gp_ReadFromString(theGraph, inputStr);
     }
 
-    // If there was an unrecoverable error, report it
+    // If there was an unrecoverable error, report it and exit early.
     if (Result != OK)
     {
-        ErrorMessage("Failed to read graph\n");
+        ErrorMessage("Failed to read graph.\n");
+
+        gp_Free(&theGraph);
+
+        return NOTOK;
     }
-    // Otherwise, call the correct algorithm on it
+
+    // Copy the graph for integrity checking
+    origGraph = gp_DupGraph(theGraph);
+
+    if (origGraph == NULL)
+    {
+        ErrorMessage("Unable to duplicate original graph.\n");
+
+        gp_Free(&theGraph);
+
+        return NOTOK;
+    }
+
+    // Run the algorithm
+    if (AttachAlgorithm(theGraph, command) == OK)
+    {
+        platform_GetTime(start);
+
+        //          gp_CreateDFSTree(theGraph);
+        //          gp_SortVertices(theGraph);
+        //          gp_Write(theGraph, "debug.before.txt", WRITE_DEBUGINFO);
+        //          gp_SortVertices(theGraph);
+
+        Result = gp_Embed(theGraph, embedFlags);
+        platform_GetTime(end);
+        Result = gp_TestEmbedResultIntegrity(theGraph, origGraph, Result);
+    }
     else
     {
-        int embedFlags = GetEmbedFlags(command);
-
-        // Copy the graph for integrity checking
-        origGraph = gp_DupGraph(theGraph);
-
-        // Run the algorithm
-        if (strchr(GetAlgorithmChoices(), command))
-        {
-            switch (command)
-            {
-            case 'd':
-                gp_AttachDrawPlanar(theGraph);
-                break;
-            case '2':
-                gp_AttachK23Search(theGraph);
-                break;
-            case '3':
-                gp_AttachK33Search(theGraph);
-                break;
-            case '4':
-                gp_AttachK4Search(theGraph);
-                break;
-            default:
-                break;
-            }
-
-            platform_GetTime(start);
-
-            //          gp_CreateDFSTree(theGraph);
-            //          gp_SortVertices(theGraph);
-            //          gp_Write(theGraph, "debug.before.txt", WRITE_DEBUGINFO);
-            //          gp_SortVertices(theGraph);
-
-            Result = gp_Embed(theGraph, embedFlags);
-            platform_GetTime(end);
-            Result = gp_TestEmbedResultIntegrity(theGraph, origGraph, Result);
-        }
-        else
-        {
-            platform_GetTime(start);
-            Result = NOTOK;
-            platform_GetTime(end);
-        }
-
-        // Write what the algorithm determined and how long it took
-        WriteAlgorithmResults(theGraph, Result, command, start, end, infileName);
-
-        // Free the graph obtained for integrity checking.
-        gp_Free(&origGraph);
+        platform_GetTime(start);
+        Result = NOTOK;
+        platform_GetTime(end);
     }
+
+    // Write what the algorithm determined and how long it took
+    WriteAlgorithmResults(theGraph, Result, command, start, end, infileName);
+
+    // Free the graph obtained for integrity checking.
+    gp_Free(&origGraph);
 
     // Report an error, if there was one, free the graph, and return
     if (Result != OK && Result != NONEMBEDDABLE)
@@ -222,58 +241,4 @@ int SpecificGraph(
     // Flush any remaining message content to the user, and return the result
     FlushConsole(stdout);
     return Result;
-}
-
-/****************************************************************************
- WriteAlgorithmResults()
- ****************************************************************************/
-
-void WriteAlgorithmResults(graphP theGraph, int Result, char command, platform_time start, platform_time end, char const *infileName)
-{
-    char const *messageFormat = NULL;
-    char messageContents[MAXLINE + 1];
-    int charsAvailForStr = 0;
-
-    if (infileName)
-    {
-        messageFormat = "The graph \"%.*s\" ";
-        charsAvailForStr = (int)(MAXLINE - strlen(messageFormat));
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat-nonliteral"
-        sprintf(messageContents, messageFormat, charsAvailForStr, infileName);
-#pragma GCC diagnostic pop
-    }
-    else
-        sprintf(messageContents, "The graph ");
-    Message(messageContents);
-
-    switch (command)
-    {
-    case 'p':
-        sprintf(messageContents, "is%s planar.\n", Result == OK ? "" : " not");
-        break;
-    case 'd':
-        sprintf(messageContents, "is%s planar.\n", Result == OK ? "" : " not");
-        break;
-    case 'o':
-        sprintf(messageContents, "is%s outerplanar.\n", Result == OK ? "" : " not");
-        break;
-    case '2':
-        sprintf(messageContents, "has %s subgraph homeomorphic to K_{2,3}.\n", Result == OK ? "no" : "a");
-        break;
-    case '3':
-        sprintf(messageContents, "has %s subgraph homeomorphic to K_{3,3}.\n", Result == OK ? "no" : "a");
-        break;
-    case '4':
-        sprintf(messageContents, "has %s subgraph homeomorphic to K_4.\n", Result == OK ? "no" : "a");
-        break;
-    default:
-        sprintf(messageContents, "has not been processed due to unrecognized command.\n");
-        break;
-    }
-    Message(messageContents);
-
-    sprintf(messageContents, "Algorithm '%s' executed in %.3lf seconds.\n",
-            GetAlgorithmName(command), platform_GetDuration(start, end));
-    Message(messageContents);
 }

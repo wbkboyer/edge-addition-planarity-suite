@@ -140,7 +140,7 @@ int beginG6ReadIterationFromG6String(G6ReadIteratorP pG6ReadIterator, char *inpu
         sf_New(inputString, NULL, READTEXT));
 }
 
-int beginG6ReadIterationFromG6FilePath(G6ReadIteratorP pG6ReadIterator, char *infileName)
+int beginG6ReadIterationFromG6FilePath(G6ReadIteratorP pG6ReadIterator, char const *const infileName)
 {
     return beginG6ReadIterationFromG6StrOrFile(
         pG6ReadIterator,

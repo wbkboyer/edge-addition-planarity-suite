@@ -119,5 +119,6 @@ int helpMessage(char *param)
     }
 
     FlushConsole(stdout);
+
     return OK;
 }
