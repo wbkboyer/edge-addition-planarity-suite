@@ -877,7 +877,10 @@ char *ConstructInputFilename(char const *infileName)
     }
 
     if (fileNameFormat != NULL)
+    {
         free(fileNameFormat);
+        fileNameFormat = NULL;
+    }
 
     return Result != OK ? NULL : theFileName;
 }

@@ -77,6 +77,11 @@ int SpecificGraph(
                 }
                 else if (strncmp(infileName, "stdin", strlen("stdin")) == 0)
                 {
+                    // NOTE: When run from command-line or test, it is not
+                    // possible to have infileName being NULL and therefore
+                    // prompting the user for the input filename, so there's no
+                    // way you could have them enter stdin and reach this error
+                    // from command-line
                     ErrorMessage("\n\tPlease choose an input file path: stdin not supported from menu.\n\n");
                     infileName = NULL;
                 }

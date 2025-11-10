@@ -23,7 +23,7 @@ int menu(void)
     char *choiceStringFormat = NULL;
     char choiceString[COMMANDSTRINGMAXLENGTH + 1];
 
-    char *commandString = NULL, *secondOutfile = NULL;
+    char *secondOutfile = NULL;
 
     char command = '\0';
 
@@ -117,10 +117,10 @@ int menu(void)
                 break;
             else
             {
-                commandString = choiceString;
+                char *commandString = choiceString;
                 if (GetCommandAndOptionalModifier(commandString, &command, NULL) != OK)
                 {
-                    Message("Unable to extract command from choice, please retry.\n");
+                    ErrorMessage("Unable to extract command from choice, please retry.\n");
                     commandString = NULL;
 
                     continue;
@@ -130,7 +130,7 @@ int menu(void)
                     secondOutfile = (char *)"";
 
                 if (!strchr(GetAlgorithmChoices(), command))
-                    Message("Invalid algorithm command choice, please retry.\n");
+                    ErrorMessage("Invalid algorithm command choice, please retry.\n");
 
                 else
                 {
@@ -146,7 +146,7 @@ int menu(void)
                         Result = RandomGraph(commandString, 0, 0, NULL, NULL);
                         break;
                     case 'n':
-                        Result = RandomGraph(choiceString, 1, 0, NULL, NULL);
+                        Result = RandomGraph(commandString, 1, 0, NULL, NULL);
                         break;
                     default:
                         break;
@@ -154,19 +154,16 @@ int menu(void)
                 }
             }
 
-            if (strcspn(choiceString, "rq") == strlen(choiceString))
+            Prompt("\nPress return key to continue...");
+            if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
             {
-                Prompt("\nPress return key to continue...");
-                if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
-                {
-                    ErrorMessage("Unable to fetch from stdin; exiting.\n");
-                    Result = NOTOK;
-                    break;
-                }
-
-                Message("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
-                FlushConsole(stdout);
+                ErrorMessage("Unable to fetch from stdin; exiting.\n");
+                Result = NOTOK;
+                break;
             }
+
+            Message("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+            FlushConsole(stdout);
         }
     }
 
@@ -175,7 +172,10 @@ int menu(void)
     FlushConsole(stderr);
 
     if (choiceStringFormat != NULL)
+    {
         free(choiceStringFormat);
+        choiceStringFormat = NULL;
+    }
 
     // NOTE: Translates internal planarity codes to appropriate exit codes
     return Result == OK ? 0 : (Result == NONEMBEDDABLE ? 1 : -1);
@@ -301,7 +301,10 @@ int TransformGraphMenu(void)
         Result = TransformGraph(commandStr, infileName, NULL, NULL, outfileName, NULL);
 
     if (fileNameFormat != NULL)
+    {
         free(fileNameFormat);
+        fileNameFormat = NULL;
+    }
 
     return Result;
 }
@@ -349,6 +352,13 @@ int TestAllGraphsMenu(void)
     if (GetNumCharsToReprInt(FILENAMEMAXLENGTH, &numCharsToReprFILENAMEMAXLENGTH) != OK)
     {
         ErrorMessage("Unable to determine number of characters required to represent FILENAMEMAXLENGTH.\n");
+
+        if (commandStringFormat != NULL)
+        {
+            free(commandStringFormat);
+            commandStringFormat = NULL;
+        }
+
         return NOTOK;
     }
 
@@ -356,6 +366,13 @@ int TestAllGraphsMenu(void)
     if (fileNameFormat == NULL)
     {
         ErrorMessage("Unable to allocate memory for filename format string.\n");
+
+        if (commandStringFormat != NULL)
+        {
+            free(commandStringFormat);
+            commandStringFormat = NULL;
+        }
+
         return NOTOK;
     }
 #pragma GCC diagnostic push
@@ -442,10 +459,16 @@ int TestAllGraphsMenu(void)
         Result = TestAllGraphs(commandString, infileName, outfileName, NULL);
 
     if (commandStringFormat != NULL)
+    {
         free(commandStringFormat);
+        commandStringFormat = NULL;
+    }
 
     if (fileNameFormat != NULL)
+    {
         free(fileNameFormat);
+        fileNameFormat = NULL;
+    }
 
     return Result;
 }

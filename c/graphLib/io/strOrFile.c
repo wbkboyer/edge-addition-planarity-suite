@@ -31,7 +31,7 @@ See the LICENSE.TXT file for licensing information.
  string-or-file object and can be obtained after all output has been written
  using sf_takeTheStr(). If the fileName is non-NULL and nonempty (which may
  correspond to stdout or stderr), then the output will go to the output stream
- and an output string will not be constructured.
+ and an output string will not be constructed.
 
  Returns the allocated string-or-file container, or NULL on error.
  ********************************************************************/

@@ -328,8 +328,11 @@ int outputTestAllGraphsResults(char command, char modifier, testAllStatsP stats,
     {
         ErrorMessage("Unable to determine the number of characters required to represent testAllGraphs stat values.\n");
 
-        free(headerStr);
-        headerStr = NULL;
+        if (headerStr != NULL)
+        {
+            free(headerStr);
+            headerStr = NULL;
+        }
 
         return NOTOK;
     }
@@ -354,8 +357,11 @@ int outputTestAllGraphsResults(char command, char modifier, testAllStatsP stats,
     {
         ErrorMessage("Unable allocate memory for results string.\n");
 
-        free(headerStr);
-        headerStr = NULL;
+        if (headerStr != NULL)
+        {
+            free(headerStr);
+            headerStr = NULL;
+        }
 
         return NOTOK;
     }
@@ -392,11 +398,17 @@ int outputTestAllGraphsResults(char command, char modifier, testAllStatsP stats,
     {
         ErrorMessage("Unable to set up string-or-file container for test output.\n");
 
-        free(headerStr);
-        headerStr = NULL;
+        if (headerStr != NULL)
+        {
+            free(headerStr);
+            headerStr = NULL;
+        }
 
-        free(resultsStr);
-        resultsStr = NULL;
+        if (resultsStr != NULL)
+        {
+            free(resultsStr);
+            resultsStr = NULL;
+        }
 
         if (outputStr != NULL && (*outputStr) != NULL)
         {
@@ -428,11 +440,17 @@ int outputTestAllGraphsResults(char command, char modifier, testAllStatsP stats,
             (*outputStr) = sf_takeTheStr(testOutput);
     }
 
-    free(headerStr);
-    headerStr = NULL;
+    if (headerStr != NULL)
+    {
+        free(headerStr);
+        headerStr = NULL;
+    }
 
-    free(resultsStr);
-    resultsStr = NULL;
+    if (resultsStr != NULL)
+    {
+        free(resultsStr);
+        resultsStr = NULL;
+    }
 
     sf_Free(&testOutput);
 
