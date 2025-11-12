@@ -595,9 +595,9 @@ int GetCommandAndOptionalModifier(const char *commandString, char *command, char
  * wish to assign the derived embedFlags is NULL.
  ****************************************************************************/
 
-int GetEmbedFlags(char command, char modifier, int *embedFlagsP)
+int GetEmbedFlags(char command, char modifier, int *pEmbedFlags)
 {
-    if (embedFlagsP == NULL)
+    if (pEmbedFlags == NULL)
     {
         ErrorMessage("Pointer to embedFlags int is NULL.\n");
         return NOTOK;
@@ -606,37 +606,32 @@ int GetEmbedFlags(char command, char modifier, int *embedFlagsP)
     switch (command)
     {
     case 'p':
-        (*embedFlagsP) = EMBEDFLAGS_PLANAR;
+        (*pEmbedFlags) = EMBEDFLAGS_PLANAR;
         break;
     case 'd':
-        (*embedFlagsP) = EMBEDFLAGS_DRAWPLANAR;
+        (*pEmbedFlags) = EMBEDFLAGS_DRAWPLANAR;
         break;
     case 'o':
-        (*embedFlagsP) = EMBEDFLAGS_OUTERPLANAR;
+        (*pEmbedFlags) = EMBEDFLAGS_OUTERPLANAR;
         break;
     case '2':
-        (*embedFlagsP) = EMBEDFLAGS_SEARCHFORK23;
+        (*pEmbedFlags) = EMBEDFLAGS_SEARCHFORK23;
         break;
     case '3':
-        (*embedFlagsP) = EMBEDFLAGS_SEARCHFORK33;
+        (*pEmbedFlags) = EMBEDFLAGS_SEARCHFORK33;
         break;
     case '4':
-        (*embedFlagsP) = EMBEDFLAGS_SEARCHFORK4;
+        (*pEmbedFlags) = EMBEDFLAGS_SEARCHFORK4;
         break;
     default:
         ErrorMessage("Unrecognized algorithm command specifier.\n");
         return NOTOK;
     }
 
-    // Future TODO: Currently, there are no graph algorithm extensions for which
-    // we wish to specify a modifier; if an additional character after the
-    // command specifier is given, then error out. In the future, once there are
-    // graph algorithm extensions whose behaviour may be conditioned on a user-
-    // specified modifier character, this check should be removed.
     if (modifier != '\0')
     {
         if (command == '3' && modifier == 'e')
-            (*embedFlagsP) |= EMBEDFLAGS_SEARCHWITHEMBEDDER;
+            (*pEmbedFlags) |= EMBEDFLAGS_SEARCHWITHEMBEDDER;
         else
         {
             ErrorMessage("Algorithm modifiers currently not supported.\n");

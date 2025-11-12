@@ -67,7 +67,7 @@ extern "C"
     int BinaryFilesEqual(char *file1Name, char *file2Name);
 
     int GetCommandAndOptionalModifier(const char *commandString, char *command, char *modifier);
-    int GetEmbedFlags(char command, char modifier, int *embedFlags);
+    int GetEmbedFlags(char command, char modifier, int *pEmbedFlags);
 
     char const *GetAlgorithmName(char command);
 
