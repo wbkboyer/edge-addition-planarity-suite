@@ -17,49 +17,198 @@ char Mode = 'r',
      ObstructedOut = 'n',
      AdjListsForEmbeddingsOut = 'n';
 
-void Reconfigure(void)
+int Reconfigure(void)
 {
-    fflush(stdin);
+    int Result = OK;
 
-    Prompt("\nDo you want to \n"
-           "  Randomly generate graphs (r),\n"
-           "  Specify a graph (s),\n"
-           "  Randomly generate a maximal planar graph (m), or\n"
-           "  Randomly generate a non-planar graph (n)? ");
-    scanf(" %c", &Mode);
+    char lineBuff[MAXLINE + 1];
 
-    Mode = (char)tolower(Mode);
-    if (!strchr("rsmn", Mode))
-        Mode = 's';
+    memset(lineBuff, '\0', (MAXLINE + 1));
 
-    if (Mode == 'r')
+    while (1)
+    {
+        Prompt("\nDo you want to \n"
+               "  Randomly generate graphs (r),\n"
+               "  Specify a graph (s),\n"
+               "  Randomly generate a maximal planar graph (m), or\n"
+               "  Randomly generate a non-planar graph (n)?\n\t");
+
+        if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
+        {
+            ErrorMessage("Unable to fetch reconfigure choice from stdin.\n");
+            Result = NOTOK;
+            break;
+        }
+
+        if (strlen(lineBuff) != 1 ||
+            sscanf(lineBuff, " %c", &Mode) != 1 ||
+            !strchr("rsmn", tolower(Mode)))
+            ErrorMessage("Invalid choice for Mode.\n");
+        else
+        {
+            Mode = (char)tolower(Mode);
+            break;
+        }
+    }
+
+    if (Result == OK && Mode == 'r')
     {
         Message("\nNOTE: The directories for the graphs you want must exist.\n\n");
 
-        Prompt("Do you want original graphs in directory 'random'? (y/n) ");
-        scanf(" %c", &OrigOut);
-
-        if (tolower(OrigOut) == 'y')
+        while (1)
         {
-            Prompt("Do you want to output generated graphs to Adjacency List (last 10 only) or to G6 (all)? (a/g) ");
-            scanf(" %c", &OrigOutFormat);
+            Prompt("Do you want original graphs in directory 'random'? (y/n) ");
+            if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
+            {
+                ErrorMessage("Unable to fetch choice from stdin.\n");
+                Result = NOTOK;
+                break;
+            }
+
+            if (strlen(lineBuff) != 1 ||
+                sscanf(lineBuff, " %c", &OrigOut) != 1 ||
+                !strchr(YESNOCHOICECHARS, OrigOut))
+                ErrorMessage("Invalid choice.\n");
+            else
+            {
+                OrigOut = (char)tolower(OrigOut);
+                break;
+            }
         }
 
-        Prompt("Do you want adj. matrix of embeddable graphs in directory 'embedded' (last 10 max))? (y/n) ");
-        scanf(" %c", &EmbeddableOut);
+        if (Result == OK && OrigOut == 'y')
+        {
+            while (1)
+            {
+                Prompt("Do you want to output generated graphs to Adjacency List (last 10 only) or to G6 (all)? (a/g) ");
+                if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
+                {
+                    ErrorMessage("Unable to fetch choice from stdin.\n");
+                    Result = NOTOK;
+                    break;
+                }
 
-        Prompt("Do you want adj. matrix of obstructed graphs in directory 'obstructed' (last 10 max)? (y/n) ");
-        scanf(" %c", &ObstructedOut);
+                if (strlen(lineBuff) != 1 ||
+                    sscanf(lineBuff, " %c", &OrigOutFormat) != 1 ||
+                    !strchr("aAgG", OrigOutFormat))
+                    ErrorMessage("Invalid choice.\n");
+                else
+                {
+                    OrigOutFormat = (char)tolower(OrigOutFormat);
+                    break;
+                }
+            }
+        }
 
-        Prompt("Do you want adjacency list format of embeddings in directory 'adjlist' (last 10 max)? (y/n) ");
-        scanf(" %c", &AdjListsForEmbeddingsOut);
+        if (Result == OK)
+        {
+            while (1)
+            {
+                Prompt("Do you want adj. matrix of embeddable graphs in directory 'embedded' (last 10 max))? (y/n) ");
+                if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
+                {
+                    ErrorMessage("Unable to fetch choice from stdin.\n");
+                    Result = NOTOK;
+                    break;
+                }
+                if (strlen(lineBuff) != 1 ||
+                    sscanf(lineBuff, " %c", &EmbeddableOut) != 1 ||
+                    !strchr(YESNOCHOICECHARS, EmbeddableOut))
+                    ErrorMessage("Invalid choice.\n");
+                else
+                {
+                    EmbeddableOut = (char)tolower(EmbeddableOut);
+                    break;
+                }
+            }
+        }
+
+        if (Result == OK)
+        {
+            while (1)
+            {
+                Prompt("Do you want adj. matrix of obstructed graphs in directory 'obstructed' (last 10 max)? (y/n) ");
+                if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
+                {
+                    ErrorMessage("Unable to fetch choice from stdin.\n");
+                    Result = NOTOK;
+                    break;
+                }
+
+                if (strlen(lineBuff) != 1 ||
+                    sscanf(lineBuff, " %c", &ObstructedOut) != 1 ||
+                    !strchr(YESNOCHOICECHARS, ObstructedOut))
+                    ErrorMessage("Invalid choice.\n");
+                else
+                {
+                    ObstructedOut = (char)tolower(ObstructedOut);
+                    break;
+                }
+            }
+        }
+
+        if (Result == OK)
+        {
+            while (1)
+            {
+                Prompt("Do you want adjacency list format of embeddings in directory 'adjlist' (last 10 max)? (y/n) ");
+                if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
+                {
+                    ErrorMessage("Unable to fetch choice from stdin.\n");
+                    Result = NOTOK;
+                    break;
+                }
+
+                if (strlen(lineBuff) != 1 ||
+                    sscanf(lineBuff, " %c", &AdjListsForEmbeddingsOut) != 1 ||
+                    !strchr(YESNOCHOICECHARS, AdjListsForEmbeddingsOut))
+                    ErrorMessage("Invalid choice.\n");
+                else
+                {
+                    AdjListsForEmbeddingsOut = (char)tolower(AdjListsForEmbeddingsOut);
+                    break;
+                }
+            }
+        }
     }
 
     FlushConsole(stdout);
+
+    return Result;
+}
+
+int GetLineFromStdin(char *lineBuff, int lineBuffSize)
+{
+    if (lineBuff == NULL)
+    {
+        ErrorMessage("Line buffer to populate is NULL.\n");
+        return NOTOK;
+    }
+
+    memset(lineBuff, '\0', lineBuffSize);
+
+    if (fgets(lineBuff, lineBuffSize, stdin) == NULL && ferror(stdin))
+    {
+        ErrorMessage("Call to fgets() from stdin failed.\n");
+        return NOTOK;
+    }
+
+    // From https://stackoverflow.com/a/28462221, strcspn finds the index of the
+    // first char in charset; this way, I replace the char at that index with
+    // the null-terminator
+    // N.B. See https://cplusplus.com/reference/cstring/strcspn/ : if no chars
+    // in str2 appear in str1, will return strlen(str1), so this line is a no-op
+    lineBuff[strcspn(lineBuff, "\n\r")] = '\0'; // works for LF, CR, CRLF, LFCR, ...
+
+    return OK;
 }
 
 void FlushConsole(FILE *f)
 {
+    // N.B. fflush(stdin) constitutes undefined behaviour; see:
+    // https://c-faq.com/stdio/stdinflush.html
+    if (f == stdin)
+        return;
     fflush(f);
 }
 
@@ -172,8 +321,9 @@ char *ReadTextFileIntoString(char const *infileName)
 
 int TextFileMatchesString(char const *theFilename, char const *theString)
 {
-    FILE *infile = NULL;
     int Result = TRUE;
+
+    FILE *infile = NULL;
 
     if (theFilename != NULL)
         infile = fopen(theFilename, "r");
@@ -220,6 +370,7 @@ int TextFileMatchesString(char const *theFilename, char const *theString)
 
     if (infile != NULL)
         fclose(infile);
+
     return Result;
 }
 
@@ -228,8 +379,9 @@ int TextFileMatchesString(char const *theFilename, char const *theString)
 
 int TextFilesEqual(char *file1Name, char *file2Name)
 {
-    FILE *infile1 = NULL, *infile2 = NULL;
     int Result = TRUE;
+
+    FILE *infile1 = NULL, *infile2 = NULL;
 
     infile1 = fopen(file1Name, "r");
     infile2 = fopen(file2Name, "r");
@@ -282,8 +434,10 @@ int TextFilesEqual(char *file1Name, char *file2Name)
 
     if (infile1 != NULL)
         fclose(infile1);
+
     if (infile2 != NULL)
         fclose(infile2);
+
     return Result;
 }
 
@@ -292,8 +446,9 @@ int TextFilesEqual(char *file1Name, char *file2Name)
 
 int BinaryFilesEqual(char *file1Name, char *file2Name)
 {
-    FILE *infile1 = NULL, *infile2 = NULL;
     int Result = TRUE;
+
+    FILE *infile1 = NULL, *infile2 = NULL;
 
     infile1 = fopen(file1Name, "r");
     infile2 = fopen(file2Name, "r");
@@ -335,8 +490,10 @@ int BinaryFilesEqual(char *file1Name, char *file2Name)
 
     if (infile1 != NULL)
         fclose(infile1);
+
     if (infile2 != NULL)
         fclose(infile2);
+
     return Result;
 }
 
@@ -372,50 +529,131 @@ char const *GetAlgorithmChoices(void)
 }
 
 /****************************************************************************
+ * GetCommandAndOptionalModifier()
+ *
+ * When provided with a valid commandString, determine the command character
+ * (and optional modifier) and return to the caller via the pointers to chars.
+ *
+ * Note that characters are processed with tolower(), since comparisons are
+ * typically performed only against lower-case letters; when applied to a digit
+ * (or to any other character where such conversion is not possible), tolower()
+ * returns the same character.
+ *
+ * Returns OK when command (and optional modifier) are successfully extracted
+ * from the commandString; no validation of the characters supplied is performed
+ * at this point.
+ *
+ * Returns NOTOK if the commandString is invalid, or if
+ * the pointer to the character to which you wish to assign the extracted
+ * character is NULL.
  ****************************************************************************/
 
-int GetEmbedFlags(char command)
+int GetCommandAndOptionalModifier(const char *commandString, char *command, char *modifier)
 {
-    int embedFlags = 0;
+    if (commandString != NULL && commandString[0] == '-')
+        commandString++;
 
-    switch (command)
+    if (commandString == NULL || strlen(commandString) == 0)
     {
-    case 'o':
-        embedFlags = EMBEDFLAGS_OUTERPLANAR;
-        break;
-    case 'p':
-        embedFlags = EMBEDFLAGS_PLANAR;
-        break;
-    case 'd':
-        embedFlags = EMBEDFLAGS_DRAWPLANAR;
-        break;
-    case '2':
-        embedFlags = EMBEDFLAGS_SEARCHFORK23;
-        break;
-    case '3':
-#ifdef INCLUDE_K33SEARCH_EMBEDDER
-        // Once we get command-line and menu-driven support for distinguishing
-        // at run-time use versus non-use of the embedder, then this code will
-        // be updated accordingly.
-        embedFlags = EMBEDFLAGS_SEARCHFORK33 | EMBEDFLAGS_SEARCHWITHEMBEDDER;
-        // To model C=-3 rather than C=-3e on command-line, comment above and uncomment below
-        // embedFlags = EMBEDFLAGS_SEARCHFORK33;
-#else
-        embedFlags = EMBEDFLAGS_SEARCHFORK33;
-#endif
-        break;
-    case '4':
-        embedFlags = EMBEDFLAGS_SEARCHFORK4;
-        break;
-    default:
-        break;
+        ErrorMessage("Cannot get embed flags for empty command string.\n");
+        return NOTOK;
     }
 
-    return embedFlags;
+    if (command == NULL)
+    {
+        ErrorMessage("Pointer to character to which to write command is NULL.\n");
+        return NOTOK;
+    }
+
+    (*command) = '\0';
+
+    if (modifier != NULL)
+        (*modifier) = '\0';
+
+    if (strlen(commandString) == 1)
+    {
+        (*command) = (char)tolower(commandString[0]);
+    }
+    else if (strlen(commandString) == 2)
+    {
+        (*command) = (char)tolower(commandString[0]);
+        if (modifier != NULL)
+            (*modifier) = (char)tolower(commandString[1]);
+    }
+
+    return OK;
 }
 
 /****************************************************************************
+ * GetEmbedFlags()
+ *
+ * Derives the embedFlags when provided with a valid command character (and
+ * optionally a modifier)
+ *
+ * Returns OK if embedFlags successfully derived, NOTOK if command and/or
+ * modifier character is invalid, or if the pointer to the integer to which you
+ * wish to assign the derived embedFlags is NULL.
  ****************************************************************************/
+
+int GetEmbedFlags(char command, char modifier, int *embedFlagsP)
+{
+    if (embedFlagsP == NULL)
+    {
+        ErrorMessage("Pointer to embedFlags int is NULL.\n");
+        return NOTOK;
+    }
+
+    switch (command)
+    {
+    case 'p':
+        (*embedFlagsP) = EMBEDFLAGS_PLANAR;
+        break;
+    case 'd':
+        (*embedFlagsP) = EMBEDFLAGS_DRAWPLANAR;
+        break;
+    case 'o':
+        (*embedFlagsP) = EMBEDFLAGS_OUTERPLANAR;
+        break;
+    case '2':
+        (*embedFlagsP) = EMBEDFLAGS_SEARCHFORK23;
+        break;
+    case '3':
+        (*embedFlagsP) = EMBEDFLAGS_SEARCHFORK33;
+        break;
+    case '4':
+        (*embedFlagsP) = EMBEDFLAGS_SEARCHFORK4;
+        break;
+    default:
+        ErrorMessage("Unrecognized algorithm command specifier.\n");
+        return NOTOK;
+    }
+
+    // Future TODO: Currently, there are no graph algorithm extensions for which
+    // we wish to specify a modifier; if an additional character after the
+    // command specifier is given, then error out. In the future, once there are
+    // graph algorithm extensions whose behaviour may be conditioned on a user-
+    // specified modifier character, this check should be removed.
+    if (modifier != '\0')
+    {
+        if (command == '3' && modifier == 'e')
+            (*embedFlagsP) |= EMBEDFLAGS_SEARCHWITHEMBEDDER;
+        else
+        {
+            ErrorMessage("Algorithm modifiers currently not supported.\n");
+            return NOTOK;
+        }
+    }
+
+    return OK;
+}
+
+/****************************************************************************
+ * GetAlgorithmName()
+ *
+ * When provided with a valid command char, derives the corresponding algorithm
+ * name returned via char const * to the caller. This memory should not be
+ * freed by the caller.
+ * ****************************************************************************/
 
 char const *GetAlgorithmName(char command)
 {
@@ -496,27 +734,48 @@ char const *GetBaseName(int baseFlag)
 }
 
 /****************************************************************************
+ * AttachAlgorithm()
+ *
+ * Determines the main graph algorithm command indicated by the command char
+ * and attaches the corresponding graph algorithm extension. The modifier is not
+ * required to determine which graph algorithm extension to attach, and is only
+ * used to signal that the behaviour of the main extension should be modified.
+ *
+ * Returns OK if graph algorithm extension corresponding to the command char
+ * was successfully attached. Returns NOTOK if theGraph is not properly
+ * initialized, if attaching the graph algorithm extension failed, or if an
+ * invalid command char was supplied.
  ****************************************************************************/
 
-void AttachAlgorithm(graphP theGraph, char command)
+int AttachAlgorithm(graphP theGraph, char command)
 {
+    if (theGraph == NULL || theGraph->N <= 0)
+    {
+        ErrorMessage("Unable to attach graph algorithm extension to NULL or uninitialized graphP.\n");
+        return NOTOK;
+    }
+
     switch (command)
     {
+    case 'p':
+        // Planarity is attached by default
+        return OK;
     case 'd':
-        gp_AttachDrawPlanar(theGraph);
-        break;
+        return gp_AttachDrawPlanar(theGraph);
+    case 'o':
+        // Outerplanarity is attached by default
+        return OK;
     case '2':
-        gp_AttachK23Search(theGraph);
-        break;
+        return gp_AttachK23Search(theGraph);
     case '3':
-        gp_AttachK33Search(theGraph);
-        break;
+        return gp_AttachK33Search(theGraph);
     case '4':
-        gp_AttachK4Search(theGraph);
-        break;
+        return gp_AttachK4Search(theGraph);
     default:
         break;
     }
+
+    return NOTOK;
 }
 
 /****************************************************************************
@@ -524,10 +783,6 @@ void AttachAlgorithm(graphP theGraph, char command)
 
  The SUFFIXMAXLENGTH is 32 to accommodate ".out.txt" + ".render.txt" + ".test.txt"
  ****************************************************************************/
-
-#define FILENAMEMAXLENGTH 128
-#define ALGORITHMNAMEMAXLENGTH 32
-#define SUFFIXMAXLENGTH 32
 
 char theFileName[FILENAMEMAXLENGTH + 1 + ALGORITHMNAMEMAXLENGTH + 1 + SUFFIXMAXLENGTH + 1];
 
@@ -541,47 +796,107 @@ char theFileName[FILENAMEMAXLENGTH + 1 + ALGORITHMNAMEMAXLENGTH + 1 + SUFFIXMAXL
 
 char *ConstructInputFilename(char const *infileName)
 {
+    int Result = OK;
+
+    int numCharsToReprFILENAMEMAXLENGTH = 0;
+    char const *fileNameFormatFormat = " %%%d[^\r\n]";
+    char *fileNameFormat = NULL;
+    char lineBuff[MAXLINE + 1];
+
+    memset(lineBuff, '\0', (MAXLINE + 1));
+
+    if (GetNumCharsToReprInt(FILENAMEMAXLENGTH, &numCharsToReprFILENAMEMAXLENGTH) != OK)
+    {
+        ErrorMessage("Unable to determine number of characters required to represent FILENAMEMAXLENGTH.\n");
+        return NULL;
+    }
+
+    fileNameFormat = (char *)malloc((strlen(fileNameFormatFormat) + numCharsToReprFILENAMEMAXLENGTH + 1) * sizeof(char));
+    if (fileNameFormat == NULL)
+    {
+        ErrorMessage("Unable to allocate memory for filename format string.\n");
+        return NULL;
+    }
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+    sprintf(fileNameFormat, fileNameFormatFormat, FILENAMEMAXLENGTH);
+#pragma GCC diagnostic pop
     if (infileName == NULL)
     {
-        do
+        while (1)
         {
             Prompt("Enter graph file name: ");
-            fflush(stdin);
-            scanf(" %s", theFileName);
-
-            if (strncmp(theFileName, "stdin", strlen("stdin")) != 0 && !strchr(theFileName, '.'))
+            if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
             {
-                Message("Graph file name does not have extension; automatically appending \".txt\".\n");
-                strcat(theFileName, ".txt");
+                ErrorMessage("Unable to read graph file name from stdin.\n");
+                Result = NOTOK;
+                break;
             }
-        } while (strlen(theFileName) == 0);
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+            if (strlen(lineBuff) == 0 || strlen(lineBuff) > FILENAMEMAXLENGTH ||
+                sscanf(lineBuff, fileNameFormat, theFileName) != 1)
+                ErrorMessage("Invalid input filename.\n");
+            else
+            {
+                if (strncmp(theFileName, "stdin", strlen("stdin")) != 0 && !strchr(theFileName, '.'))
+                {
+                    Message("Graph file name does not have extension; automatically appending \".txt\".\n");
+                    if (strcat(theFileName, ".txt") == NULL)
+                    {
+                        ErrorMessage("Appending \".txt\" extension to theFileName using strcat() failed.\n");
+                        Result = NOTOK;
+                    }
+                }
+                break;
+            }
+#pragma GCC diagnostic pop
+        }
     }
     else
     {
         if (strlen(infileName) > FILENAMEMAXLENGTH)
         {
-            ErrorMessage("Filename is too long");
-            return NULL;
+            ErrorMessage("Filename is too long.\n");
+            Result = NOTOK;
         }
         else if (strlen(infileName) == 0)
         {
-            ErrorMessage("Filename is empty");
-            return NULL;
+            ErrorMessage("Filename is empty.\n");
+            Result = NOTOK;
         }
-        strcpy(theFileName, infileName);
+
+        if (Result == OK)
+        {
+            if (strcpy(theFileName, infileName) == NULL)
+            {
+                ErrorMessage("Copying infileName into theFileName using strcpy() failed.\n");
+                Result = NOTOK;
+            }
+        }
     }
 
-    return theFileName;
+    if (fileNameFormat != NULL)
+    {
+        free(fileNameFormat);
+        fileNameFormat = NULL;
+    }
+
+    return Result != OK ? NULL : theFileName;
 }
 
 /****************************************************************************
- ConstructPrimaryOutputFilename()
- Returns a string not owned by the caller (do not free string).
- Reuses the same memory space as ConstructInputFilename().
- If outfileName is non-NULL, then the result string contains its content.
- If outfileName is NULL, then the infileName and the command's algorithm name
- are used to construct a string.
- Returns non-NULL string
+ * ConstructPrimaryOutputFilename()
+ *
+ * Returns a string not owned by the caller (do not free string).
+ * Reuses the same memory space as ConstructInputFilename().
+ * If outfileName is non-NULL, then the result string contains its content.
+ * If outfileName is NULL, then the infileName and the command's algorithm name
+ * are used to construct a string.
+ *
+ * Returns non-NULL string
  ****************************************************************************/
 
 char *ConstructPrimaryOutputFilename(char const *infileName, char const *outfileName, char command)
@@ -602,7 +917,7 @@ char *ConstructPrimaryOutputFilename(char const *infileName, char const *outfile
             strcat(theFileName, algorithmName);
         }
         else
-            ErrorMessage("Algorithm Name is too long, so it will not be used in output filename.");
+            ErrorMessage("Algorithm Name is too long, so it will not be used in output filename.\n");
 
         strcat(theFileName, ".out.txt");
     }
@@ -643,18 +958,22 @@ char *ConstructPrimaryOutputFilename(char const *infileName, char const *outfile
 }
 
 /****************************************************************************
- ConstructTransformationExpectedResultFilename()
- Returns a string whose ownership will be transferred to the caller (must free string).
- If outfileName is non-NULL, then the result string contains its content.
- If outfileName is NULL, then the infileName, the command's algorithm name, and
- whether or not this output file correspond to the actual (0) or expected (1)
- output file from testing are used to construct a string.
- Returns non-NULL string
+ * ConstructTransformationExpectedResultFilename()
+ *
+ * Returns a string whose ownership will be transferred to the caller (must free
+ * string).
+ * If outfileName is non-NULL, then the result string contains its content
+ * If outfileName is NULL, then the infileName, the command's algorithm name,
+ * and whether or not this output file correspond to the actual (0) or expected
+ * (1) output file from testing are used to construct a string.
+ *
+ * Returns non-NULL string
  ****************************************************************************/
 
 int ConstructTransformationExpectedResultFilename(char const *infileName, char **outfileName, char command, int baseFlag)
 {
     int Result = OK;
+
     char const *baseName = GetBaseName(baseFlag);
     char const *transformationName = GetTransformationName(command);
     int infileNameLen = -1;
@@ -667,7 +986,10 @@ int ConstructTransformationExpectedResultFilename(char const *infileName, char *
 
     if ((*outfileName) == NULL)
     {
-        (*outfileName) = (char *)calloc(infileNameLen + 1 + strlen(baseName) + 1 + strlen(transformationName) + ((command == 'g') ? strlen(".out.g6") : strlen(".out.txt")) + 1, sizeof(char));
+        (*outfileName) = (char *)calloc(
+            infileNameLen + 1 + strlen(baseName) + 1 + strlen(transformationName) +
+                ((command == 'g') ? strlen(".out.g6") : strlen(".out.txt")) + 1,
+            sizeof(char));
 
         if ((*outfileName) == NULL)
         {
@@ -689,4 +1011,60 @@ int ConstructTransformationExpectedResultFilename(char const *infileName, char *
     }
 
     return Result;
+}
+
+/****************************************************************************
+ * WriteAlgorithmResults()
+ ****************************************************************************/
+
+void WriteAlgorithmResults(graphP theGraph, int Result, char command, platform_time start, platform_time end, char const *infileName)
+{
+    char const *messageFormat = NULL;
+    char messageContents[MAXLINE + 1];
+    int charsAvailForStr = 0;
+
+    memset(messageContents, '\0', (MAXLINE + 1));
+
+    if (infileName)
+    {
+        messageFormat = "The graph \"%.*s\" ";
+        charsAvailForStr = (int)(MAXLINE - strlen(messageFormat));
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+        sprintf(messageContents, messageFormat, charsAvailForStr, infileName);
+#pragma GCC diagnostic pop
+    }
+    else
+        sprintf(messageContents, "The graph ");
+    Message(messageContents);
+
+    switch (command)
+    {
+    case 'p':
+        sprintf(messageContents, "is%s planar.\n", Result == OK ? "" : " not");
+        break;
+    case 'd':
+        sprintf(messageContents, "is%s planar.\n", Result == OK ? "" : " not");
+        break;
+    case 'o':
+        sprintf(messageContents, "is%s outerplanar.\n", Result == OK ? "" : " not");
+        break;
+    case '2':
+        sprintf(messageContents, "has %s subgraph homeomorphic to K_{2,3}.\n", Result == OK ? "no" : "a");
+        break;
+    case '3':
+        sprintf(messageContents, "has %s subgraph homeomorphic to K_{3,3}.\n", Result == OK ? "no" : "a");
+        break;
+    case '4':
+        sprintf(messageContents, "has %s subgraph homeomorphic to K_4.\n", Result == OK ? "no" : "a");
+        break;
+    default:
+        sprintf(messageContents, "has not been processed due to unrecognized command.\n");
+        break;
+    }
+    Message(messageContents);
+
+    sprintf(messageContents, "Algorithm '%s' executed in %.3lf seconds.\n",
+            GetAlgorithmName(command), platform_GetDuration(start, end));
+    Message(messageContents);
 }

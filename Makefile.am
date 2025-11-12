@@ -68,12 +68,12 @@ nobase_pkginclude_HEADERS = \
 	c/graphLib/lowLevelUtils/platformTime.h \
 	c/graphLib/lowLevelUtils/stack.h \
 	c/graphLib/planarityRelated/graphDrawPlanar.h \
-	c/graphLib/planarityRelated/graphDrawPlanar.private.h \
-	c/planarityApp/planarity.h
+	c/graphLib/planarityRelated/graphDrawPlanar.private.h
 
 bin_PROGRAMS = planarity
 planarity_LDADD  = libplanarity.la
 planarity_SOURCES = \
+	c/planarityApp/planarity.h \
 	c/planarityApp/planarity.c \
 	c/planarityApp/planarityCommandLine.c \
 	c/planarityApp/planarityHelp.c \
