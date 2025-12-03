@@ -9,6 +9,7 @@ See the LICENSE.TXT file for licensing information.
 int GetNumberIfZero(int *pNum, char const *prompt, int min, int max);
 void ReinitializeGraph(graphP *pGraph, int ReuseGraphs, char command);
 graphP MakeGraph(int Size, char command);
+int WriteEdgeListFormat(graphP theGraph, graphP origGraph, int extraEdges);
 
 /****************************************************************************
  * RandomGraphs()
@@ -25,16 +26,17 @@ graphP MakeGraph(int Size, char command);
 int RandomGraphs(char const *const commandString, int NumGraphs, int SizeOfGraphs, char *outfileName)
 {
     int Result = OK;
-
-    char command = '\0', modifier = '\0';
+    int writeResult = OK;
 
     int K = 0, countUpdateFreq = 0, embedFlags = 0, MainStatistic = 0;
-    int ObstructionMinorFreqs[NUM_MINORS];
     int ReuseGraphs = TRUE;
-    int writeResult;
     int writeErrorReported_Random = FALSE, writeErrorReported_Embedded = FALSE,
         writeErrorReported_AdjList = FALSE, writeErrorReported_Obstructed = FALSE,
         writeErrorReported_Error = FALSE;
+
+    char command = '\0', modifier = '\0';
+
+    int ObstructionMinorFreqs[NUM_MINORS];
 
     graphP theGraph = NULL, origGraph = NULL;
 
@@ -114,6 +116,7 @@ int RandomGraphs(char const *const commandString, int NumGraphs, int SizeOfGraph
                 ErrorMessage("Unable to free G6WriteIterator.\n");
 
             gp_Free(&theGraph);
+            gp_Free(&origGraph);
 
             return NOTOK;
         }
@@ -136,6 +139,7 @@ int RandomGraphs(char const *const commandString, int NumGraphs, int SizeOfGraph
                 ErrorMessage("Unable to free G6WriteIterator.\n");
 
             gp_Free(&theGraph);
+            gp_Free(&origGraph);
 
             return NOTOK;
         }
@@ -175,6 +179,17 @@ int RandomGraphs(char const *const commandString, int NumGraphs, int SizeOfGraph
                 {
                     sprintf(messageContents, "Unable to write graph number %d using G6WriteIterator.\n", K);
                     ErrorMessage(messageContents);
+                    // TODO: should I be setting writeErrorReported_Random =
+                    // TRUE here? Where do these even get used? Should we be
+                    // breaking out of RandomGraphs() if there's an error with
+                    // the G6WriteIterator?? I just caught an issue where if
+                    // writeGraphUsingG6WriteIterator() fails because
+                    // _encodeAdjMatAsG6() failed, the columnOffsets and
+                    // g6Encoding would be free()'d, which would cause big
+                    // problems in subsequent loop iterations here! Or wait, I
+                    // guess I do check _isG6WriteIteratorAllocated(), so we'd
+                    // just return NOTOK for each iteration after without memory
+                    // access issues...
                 }
             }
             if (tolower(OrigOut) == 'y' && tolower(OrigOutFormat) == 'a')
@@ -327,6 +342,10 @@ int RandomGraphs(char const *const commandString, int NumGraphs, int SizeOfGraph
     fprintf(stdout, "%d\n", NumGraphs);
     fflush(stdout);
 
+    // TODO: I realize that setting Result to NOTOK here overrides the
+    // OK/NONEMBEDDABLE of the last graph which we embedded and checked embed
+    // result integrity... Should we be distinguishing between these NOTOK
+    // states?
     if (pG6WriteIterator != NULL)
     {
         if (endG6WriteIteration(pG6WriteIterator) != OK)
@@ -480,7 +499,7 @@ int GetNumberIfZero(int *pNum, char const *prompt, int min, int max)
 
 graphP MakeGraph(int Size, char command)
 {
-    graphP theGraph;
+    graphP theGraph = NULL;
     char messageContents[MAXLINE + 1];
 
     memset(messageContents, '\0', (MAXLINE + 1));
@@ -496,9 +515,7 @@ graphP MakeGraph(int Size, char command)
     {
         sprintf(messageContents, "Unable to attach graph algorithm extension corresponding to command '%c'\n", command);
         ErrorMessage(messageContents);
-
         gp_Free(&theGraph);
-        theGraph = NULL;
     }
 
     return theGraph;
@@ -533,14 +550,9 @@ int RandomGraph(char const *const commandString, int extraEdges, int numVertices
     platform_time start, end;
     graphP theGraph = NULL, origGraph = NULL;
     int embedFlags = 0;
-    char saveEdgeListFormat = '\0', command = '\0', modifier = '\0';
-
-    char lineBuff[MAXLINE + 1];
-    char const *messageFormat = NULL;
+    char command = '\0', modifier = '\0';
     char messageContents[MAXLINE + 1];
-    int charsAvailForStr = 0;
 
-    memset(lineBuff, '\0', (MAXLINE + 1));
     memset(messageContents, '\0', (MAXLINE + 1));
 
     if ((Result = GetCommandAndOptionalModifier(commandString, &command, &modifier)) != OK)
@@ -572,6 +584,7 @@ int RandomGraph(char const *const commandString, int extraEdges, int numVertices
     if (gp_CreateRandomGraphEx(theGraph, 3 * numVertices - 6 + extraEdges) != OK)
     {
         ErrorMessage("gp_CreateRandomGraphEx() failed\n");
+        gp_Free(&theGraph);
         return NOTOK;
     }
     platform_GetTime(end);
@@ -583,10 +596,20 @@ int RandomGraph(char const *const commandString, int extraEdges, int numVertices
     // The user may have requested a copy of the random graph before processing
     if (outfile2Name != NULL)
     {
-        gp_Write(theGraph, outfile2Name, WRITE_ADJLIST);
+        if (gp_Write(theGraph, outfile2Name, WRITE_ADJLIST) != OK)
+        {
+            ErrorMessage("Unable to write generated random graph before embedding.\n");
+            gp_Free(&theGraph);
+            return NOTOK;
+        }
     }
 
-    origGraph = gp_DupGraph(theGraph);
+    if ((origGraph = gp_DupGraph(theGraph)) == NULL)
+    {
+        ErrorMessage("Unable to create copy of generated random graph before embedding.\n");
+        gp_Free(&theGraph);
+        return NOTOK;
+    }
 
     // Do the requested algorithm on the randomly generated graph
     Message("Now processing\n");
@@ -596,7 +619,34 @@ int RandomGraph(char const *const commandString, int extraEdges, int numVertices
     Result = gp_Embed(theGraph, embedFlags);
     platform_GetTime(end);
 
-    gp_SortVertices(theGraph);
+    if (Result != OK && Result != NONEMBEDDABLE)
+    {
+        // TODO: I think it's fair to bail out of RandomGraph() at this point if
+        // gp_Embed() failed, since we likely don't want to try to
+        // gp_SortVertices() if something went wrong with embedding?
+        ErrorMessage("Failed to embed randomly generated graph\n");
+        gp_Free(&theGraph);
+        gp_Free(&origGraph);
+        return NOTOK;
+    }
+
+    if (gp_SortVertices(theGraph) != OK)
+    {
+        // TODO: Seems the only override is _DrawPlanar_SortVertices(), which
+        // only returns NOTOK if the base _SortVertices() returns NOTOK, which
+        // itself only returns NOTOK if the graph is not yet DFI ordered and
+        // gp_CreateDFSTree() fails... Should this error message refer to this
+        // fact, since there's no ErrorMessages emitted by graphDFSUtils.c
+        // functions?
+        // NOTE: Also I feel like it's fair to bail out at this point since
+        // there must be something wrong with the graph if gp_CreateDFSTree()
+        // failed, and we probably don't want to try to
+        // gp_TestEmbedResultIntegrity()?
+        ErrorMessage("Unable to sort vertices of generated random graph\n");
+        gp_Free(&theGraph);
+        gp_Free(&origGraph);
+        return NOTOK;
+    }
 
     if (gp_TestEmbedResultIntegrity(theGraph, origGraph, Result) != Result)
         Result = NOTOK;
@@ -608,60 +658,16 @@ int RandomGraph(char const *const commandString, int extraEdges, int numVertices
     // user wants the edge list formatted file.
     if (Result == OK || Result == NONEMBEDDABLE)
     {
-        if (outfileName != NULL)
-            gp_Write(theGraph, outfileName, WRITE_ADJLIST);
-
-        if (!getQuietModeSetting())
+        if (outfileName != NULL && gp_Write(theGraph, outfileName, WRITE_ADJLIST) != OK)
         {
-            while (1)
-            {
-                Prompt("Do you want to save the generated graph in edge list format (y/n)? ");
-                if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
-                {
-                    ErrorMessage("Unable to read user input to indicate whether to save edge list format from stdin.\n");
-                    Result = NOTOK;
-                    break;
-                }
-
-                if (strlen(lineBuff) != 1 ||
-                    sscanf(lineBuff, " %c", &saveEdgeListFormat) != 1 ||
-                    !strchr(YESNOCHOICECHARS, saveEdgeListFormat))
-                    ErrorMessage("Invalid choice whether to save graph in edge list format.\n");
-                else
-                {
-                    saveEdgeListFormat = (char)tolower(saveEdgeListFormat);
-                    break;
-                }
-            }
+            ErrorMessage("Unable to write graph as adjacency list after successful gp_Embed() and gp_TestEmbedResultIntegrity().\n");
+            Result = NOTOK;
         }
 
-        if ((Result == OK || Result == NONEMBEDDABLE) && saveEdgeListFormat == 'y')
+        if (Result == OK && !getQuietModeSetting() && WriteEdgeListFormat(theGraph, origGraph, extraEdges) != OK)
         {
-            char theFileName[MAXLINE + 1];
-
-            if (extraEdges > 0)
-                strcpy(theFileName, "nonPlanarEdgeList.txt");
-            else
-                strcpy(theFileName, "maxPlanarEdgeList.txt");
-
-            messageFormat = "Saving edge list format of original graph to \"%.*s\"\n";
-            charsAvailForStr = (int)(MAXLINE - strlen(messageFormat));
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat-nonliteral"
-            sprintf(messageContents, messageFormat, charsAvailForStr, theFileName);
-#pragma GCC diagnostic pop
-            Message(messageContents);
-            SaveAsciiGraph(origGraph, theFileName);
-
-            strcat(theFileName, ".out.txt");
-            messageFormat = "Saving edge list format of result to \"%.*s\"\n";
-            charsAvailForStr = (int)(MAXLINE - strlen(messageFormat));
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat-nonliteral"
-            sprintf(messageContents, messageFormat, charsAvailForStr, theFileName);
-#pragma GCC diagnostic pop
-            Message(messageContents);
-            SaveAsciiGraph(theGraph, theFileName);
+            ErrorMessage("Encountered an error when attempting to write graph to edge list format.\n");
+            Result = NOTOK;
         }
     }
     else
@@ -673,4 +679,64 @@ int RandomGraph(char const *const commandString, int extraEdges, int numVertices
     FlushConsole(stdout);
 
     return Result;
+}
+
+int WriteEdgeListFormat(graphP theGraph, graphP origGraph, int extraEdges)
+{
+    char saveEdgeListFormat = '\0';
+    int charsAvailForStr = 0;
+    char const *messageFormat = NULL;
+    char messageContents[MAXLINE + 1];
+    char theFileName[MAXLINE + 1];
+    char lineBuff[MAXLINE + 1];
+
+    memset(messageContents, '\0', (MAXLINE + 1));
+    memset(theFileName, '\0', (MAXLINE + 1));
+    memset(lineBuff, '\0', (MAXLINE + 1));
+
+    while (1)
+    {
+        Prompt("Do you want to save the generated graph in edge list format (y/n)? ");
+        if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
+        {
+            ErrorMessage("Unable to read user input to indicate whether to save edge list format from stdin.\n");
+            return NOTOK;
+        }
+
+        if (strlen(lineBuff) != 1 ||
+            sscanf(lineBuff, " %c", &saveEdgeListFormat) != 1 ||
+            !strchr(YESNOCHOICECHARS, saveEdgeListFormat))
+            ErrorMessage("Invalid choice whether to save graph in edge list format.\n");
+        else
+        {
+            saveEdgeListFormat = (char)tolower(saveEdgeListFormat);
+            break;
+        }
+    }
+
+    if (extraEdges > 0)
+        strcpy(theFileName, "nonPlanarEdgeList.txt");
+    else
+        strcpy(theFileName, "maxPlanarEdgeList.txt");
+
+    messageFormat = "Saving edge list format of original graph to \"%.*s\"\n";
+    charsAvailForStr = (int)(MAXLINE - strlen(messageFormat));
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+    sprintf(messageContents, messageFormat, charsAvailForStr, theFileName);
+#pragma GCC diagnostic pop
+    Message(messageContents);
+    SaveAsciiGraph(origGraph, theFileName);
+
+    strcat(theFileName, ".out.txt");
+    messageFormat = "Saving edge list format of result to \"%.*s\"\n";
+    charsAvailForStr = (int)(MAXLINE - strlen(messageFormat));
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+    sprintf(messageContents, messageFormat, charsAvailForStr, theFileName);
+#pragma GCC diagnostic pop
+    Message(messageContents);
+    SaveAsciiGraph(theGraph, theFileName);
+
+    return OK;
 }

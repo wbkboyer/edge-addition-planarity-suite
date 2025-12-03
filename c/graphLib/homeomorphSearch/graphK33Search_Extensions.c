@@ -116,6 +116,8 @@ int gp_AttachK33Search(graphP theGraph)
                         &context->functions) != OK)
     {
         _K33Search_FreeContext(context);
+        context = NULL;
+
         return NOTOK;
     }
 
@@ -131,6 +133,8 @@ int gp_AttachK33Search(graphP theGraph)
             _K33Search_InitStructures(context) != OK)
         {
             _K33Search_FreeContext(context);
+            context = NULL;
+
             return NOTOK;
         }
     }
@@ -325,6 +329,8 @@ void *_K33Search_DupContext(void *pContext, void *theGraph)
             if (_K33Search_CreateStructures(newContext) != OK)
             {
                 _K33Search_FreeContext(newContext);
+                newContext = NULL;
+
                 return NULL;
             }
 

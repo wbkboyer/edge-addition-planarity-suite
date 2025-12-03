@@ -107,10 +107,16 @@ int legacyCommandLine(int argc, char *argv[])
 
     graphP theGraph = gp_New();
 
-    Result = gp_Read(theGraph, argv[1]);
-    if (Result != OK)
+    if (theGraph == NULL)
     {
-        if (Result != NONEMBEDDABLE)
+        ErrorMessage("Unable to allocate memory for theGraph.\n");
+        Result = NOTOK;
+    }
+
+    if (Result == OK)
+    {
+        Result = gp_Read(theGraph, argv[1]);
+        if (Result != OK)
         {
             char const *messageFormat = "Failed to read graph \"%.*s\"";
             char messageContents[MAXLINE + 1];
@@ -121,31 +127,36 @@ int legacyCommandLine(int argc, char *argv[])
 #pragma GCC diagnostic pop
             ErrorMessage(messageContents);
 
-            if (theGraph != NULL)
-                gp_Free(&theGraph);
-
-            return -2;
+            Result = NOTOK;
         }
     }
-
-    Result = gp_Embed(theGraph, EMBEDFLAGS_PLANAR);
 
     if (Result == OK)
     {
-        gp_SortVertices(theGraph);
-        gp_Write(theGraph, argv[2], WRITE_ADJLIST);
-    }
-
-    else if (Result == NONEMBEDDABLE)
-    {
-        if (argc >= 5 && strcmp(argv[3], "-n") == 0)
+        Result = gp_Embed(theGraph, EMBEDFLAGS_PLANAR);
+        if (Result == OK)
         {
-            gp_SortVertices(theGraph);
-            gp_Write(theGraph, argv[4], WRITE_ADJLIST);
+            if ((Result = gp_SortVertices(theGraph)) != OK)
+                ErrorMessage("Failed to restore original vertex labelling.\n");
+
+            if (Result == OK && (Result = gp_Write(theGraph, argv[2], WRITE_ADJLIST)) != OK)
+                ErrorMessage("Failed to write embedding.\n");
         }
+
+        else if (Result == NONEMBEDDABLE)
+        {
+            if (argc >= 5 && strcmp(argv[3], "-n") == 0)
+            {
+                if ((Result = gp_SortVertices(theGraph)) != OK)
+                    ErrorMessage("Failed to restore original vertex labelling.\n");
+
+                if (Result == OK && (Result = gp_Write(theGraph, argv[4], WRITE_ADJLIST)) != OK)
+                    ErrorMessage("Failed to write obstruction.\n");
+            }
+        }
+        else
+            Result = NOTOK;
     }
-    else
-        Result = NOTOK;
 
     gp_Free(&theGraph);
 
@@ -742,8 +753,9 @@ int callRandomGraphs(int argc, char *argv[])
 // 'planarity -s [-q] C I O [O2]': Specific graph
 int callSpecificGraph(int argc, char *argv[])
 {
-    char *commandString = NULL, *infileName = NULL, *outfileName = NULL, *outfile2Name = NULL;
     int offset = 0;
+    char *commandString = NULL;
+    char *infileName = NULL, *outfileName = NULL, *outfile2Name = NULL;
 
     if (argc < 5)
         return NOTOK;
@@ -776,7 +788,7 @@ int callSpecificGraph(int argc, char *argv[])
 // 'planarity -rm [-q] N O [O2]': Maximal planar random graph
 int callRandomMaxPlanarGraph(int argc, char *argv[])
 {
-    int offset = 0, numVertices;
+    int offset = 0, numVertices = 0;
     char *outfileName = NULL, *outfile2Name = NULL;
 
     if (argc < 4)
@@ -809,7 +821,7 @@ int callRandomMaxPlanarGraph(int argc, char *argv[])
 // 'planarity -rn [-q] N O [O2]': Non-planar random graph (maximal planar plus edge)
 int callRandomNonplanarGraph(int argc, char *argv[])
 {
-    int offset = 0, numVertices;
+    int offset = 0, numVertices = 0;
     char *outfileName = NULL, *outfile2Name = NULL;
 
     if (argc < 4)

@@ -38,10 +38,10 @@ int allocateG6WriteIterator(G6WriteIteratorP *ppG6WriteIterator, graphP pGraph)
     {
         ErrorMessage("[ERROR] Must allocate and initialize graph with an order greater than 0 to use the G6WriteIterator.\n");
 
-        exitCode = freeG6WriteIterator(ppG6WriteIterator);
-
-        if (exitCode != OK)
+        if (freeG6WriteIterator(ppG6WriteIterator) != OK)
             ErrorMessage("Unable to free the G6WriteIterator.\n");
+
+        exitCode = NOTOK;
     }
     else
         (*ppG6WriteIterator)->currGraph = pGraph;
@@ -259,7 +259,7 @@ int _encodeAdjMatAsG6(G6WriteIteratorP pG6WriteIterator)
 
     if (!_isG6WriteIteratorAllocated(pG6WriteIterator))
     {
-        ErrorMessage("Unable to encode graph with invalid G6WriteIterator\n");
+        ErrorMessage("Unable to encode graph with invalid G6WriteIterator.\n");
         return NOTOK;
     }
 
@@ -339,8 +339,23 @@ int _encodeAdjMatAsG6(G6WriteIteratorP pG6WriteIterator)
         if (exitCode != OK)
         {
             ErrorMessage("Unable to fetch next edge in graph.\n");
-            free(columnOffsets);
-            free(g6Encoding);
+
+            // FIXME: I don't think I should be doing this here, as these belong
+            // to the G6WriteIterator and should only be cleaned up when the
+            // caller decides what to do in an error state, i.e to free the
+            // iterator using freeG6WriteIterator()... RandomGraphs() doesn't
+            // stop when there's an error from writeGraphUsingG6WriteIterator(),
+            // so this means for every subsequent iteration up to K graphs
+            // generated, _isG6WriteIteratorAllocated() will return NOTOK (so at
+            // least we're not trying to access data members, but there might be
+            // other places *not* appropriately safeguarded)
+
+            // free(columnOffsets);
+            // columnOffsets = NULL;
+
+            // free(g6Encoding);
+            // g6Encoding = NULL;
+
             return exitCode;
         }
     }
@@ -361,7 +376,7 @@ int _getFirstEdge(graphP theGraph, int *e, int *u, int *v)
 
     if ((*e) >= gp_EdgeInUseIndexBound(theGraph))
     {
-        ErrorMessage("First edge is outside bounds.");
+        ErrorMessage("First edge is outside bounds.\n");
         return NOTOK;
     }
 

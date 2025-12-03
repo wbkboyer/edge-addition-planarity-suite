@@ -284,7 +284,9 @@ char *ReadTextFileIntoString(char const *infileName)
     FILE *infile = NULL;
     char *inputString = NULL;
 
-    if ((infile = fopen(infileName, "r")) == NULL)
+    if (infileName == NULL || strlen(infileName) == 0)
+        ErrorMessage("Unable to fopen() with NULL or empty infileName.\n");
+    else if ((infile = fopen(infileName, "r")) == NULL)
         ErrorMessage("fopen() failed.\n");
     else
     {
@@ -792,6 +794,9 @@ char theFileName[FILENAMEMAXLENGTH + 1 + ALGORITHMNAMEMAXLENGTH + 1 + SUFFIXMAXL
  Returns NULL on error, or a non-NULL string on success.
  ****************************************************************************/
 
+// FIXME: Should I introduce some sort of pattern where functions requiring
+// user input should temporarily set quietMode to false, then restore the
+// original value at the end of the function?
 char *ConstructInputFilename(char const *infileName)
 {
     int Result = OK;
@@ -806,6 +811,7 @@ char *ConstructInputFilename(char const *infileName)
     if (GetNumCharsToReprInt(FILENAMEMAXLENGTH, &numCharsToReprFILENAMEMAXLENGTH) != OK)
     {
         ErrorMessage("Unable to determine number of characters required to represent FILENAMEMAXLENGTH.\n");
+
         return NULL;
     }
 
@@ -813,6 +819,7 @@ char *ConstructInputFilename(char const *infileName)
     if (fileNameFormat == NULL)
     {
         ErrorMessage("Unable to allocate memory for filename format string.\n");
+
         return NULL;
     }
 
@@ -828,7 +835,9 @@ char *ConstructInputFilename(char const *infileName)
             if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
             {
                 ErrorMessage("Unable to read graph file name from stdin.\n");
+
                 Result = NOTOK;
+
                 break;
             }
 
@@ -836,7 +845,7 @@ char *ConstructInputFilename(char const *infileName)
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
             if (strlen(lineBuff) == 0 || strlen(lineBuff) > FILENAMEMAXLENGTH ||
                 sscanf(lineBuff, fileNameFormat, theFileName) != 1)
-                ErrorMessage("Invalid input filename.\n");
+                ErrorMessage("Invalid input filename.\n"); // FIXME: for example, here, if quiet mode is enabled, the user will not see the ErrorMessage()?
             else
             {
                 if (strncmp(theFileName, "stdin", strlen("stdin")) != 0 && !strchr(theFileName, '.'))
@@ -845,6 +854,7 @@ char *ConstructInputFilename(char const *infileName)
                     if (strcat(theFileName, ".txt") == NULL)
                     {
                         ErrorMessage("Appending \".txt\" extension to theFileName using strcat() failed.\n");
+
                         Result = NOTOK;
                     }
                 }
@@ -858,11 +868,13 @@ char *ConstructInputFilename(char const *infileName)
         if (strlen(infileName) > FILENAMEMAXLENGTH)
         {
             ErrorMessage("Filename is too long.\n");
+
             Result = NOTOK;
         }
         else if (strlen(infileName) == 0)
         {
             ErrorMessage("Filename is empty.\n");
+
             Result = NOTOK;
         }
 
@@ -871,6 +883,7 @@ char *ConstructInputFilename(char const *infileName)
             if (strcpy(theFileName, infileName) == NULL)
             {
                 ErrorMessage("Copying infileName into theFileName using strcpy() failed.\n");
+
                 Result = NOTOK;
             }
         }

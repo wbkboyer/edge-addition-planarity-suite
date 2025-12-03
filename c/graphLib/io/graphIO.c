@@ -130,7 +130,7 @@ int _ReadAdjMatrix(graphP theGraph, strOrFileP inputContainer)
 int _ReadAdjList(graphP theGraph, strOrFileP inputContainer)
 {
     int N = -1;
-    int v, W, adjList, e, indexValue, ErrorCode;
+    int v = -1, W = -1, adjList = -1, e = -1, indexValue = -1, ErrorCode = OK;
     int zeroBased = FALSE;
 
     if (sf_ValidateStrOrFile(inputContainer) != OK)
@@ -334,7 +334,7 @@ int _ReadAdjList(graphP theGraph, strOrFileP inputContainer)
 int _ReadLEDAGraph(graphP theGraph, strOrFileP inputContainer)
 {
     int N = -1;
-    int graphType, M, m, u, v, ErrorCode;
+    int graphType = 0, M = -1, m = -1, u = -1, v = -1, ErrorCode = OK;
     int zeroBasedOffset = gp_GetFirstVertex(theGraph) == 0 ? 1 : 0;
     char Line[MAXLINE + 1];
 
@@ -450,9 +450,29 @@ int gp_ReadFromString(graphP theGraph, char *inputStr)
     strOrFileP inputContainer = sf_New(inputStr, NULL, READTEXT);
     if (inputContainer == NULL)
     {
+        // FIXME: Should this actually be moved *above* this check, seeing as we
+        // sb_ConcatStr() to copy inputStr to the internal strBuf of the
+        // strOrFile container??? I think this might constitute a memory leak
+        // that somehow wasn't caught when I did the AddressSanitizer checks for
+        // -test (which does inMemoryFlag of graph input??)
+
+        // Upon checking, it just so *happens* that the only two paths that call
+        // gp_ReadFromString(), runGraphTransformationTest() and
+        // runSpecificGraphTest(), clean up the inputString if it's not yet NULL!
+
+        // Do we want to actually *remove* the statement that ownership is
+        // transferred, and put it back on the caller to clean up the inputStr,
+        // since we can't set the pointer to NULL unless we have a
+        // pointer-pointer?
+
+        // NOTE: We free the inputStr in case of error allocating the strOrFile
+        // inputContainer, as the caller transfers ownership of the inputStr
         if (inputStr != NULL)
+        {
             free(inputStr);
-        inputStr = NULL;
+            inputStr = NULL;
+        }
+
         return NOTOK;
     }
 
@@ -587,7 +607,7 @@ int _ReadPostprocess(graphP theGraph, char *extraData)
 
 int _WriteAdjList(graphP theGraph, strOrFileP outputContainer)
 {
-    int v, e;
+    int v = -1, e = -1;
     int zeroBasedOffset = (theGraph->internalFlags & FLAGS_ZEROBASEDIO) ? gp_GetFirstVertex(theGraph) : 0;
     char numberStr[MAXCHARSFOR32BITINT + 1];
 
@@ -649,7 +669,7 @@ int _WriteAdjList(graphP theGraph, strOrFileP outputContainer)
 
 int _WriteAdjMatrix(graphP theGraph, strOrFileP outputContainer)
 {
-    int v, e, K;
+    int v = -1, e = -1, K = -1;
     char *Row = NULL;
     char numberStr[MAXCHARSFOR32BITINT + 1];
 
@@ -698,6 +718,8 @@ int _WriteAdjMatrix(graphP theGraph, strOrFileP outputContainer)
     }
 
     free(Row);
+    Row = NULL;
+
     return OK;
 }
 
@@ -750,7 +772,7 @@ char _GetVertexObstructionTypeChar(graphP theGraph, int v)
 
 int _WriteDebugInfo(graphP theGraph, strOrFileP outputContainer)
 {
-    int v, e, EsizeOccupied;
+    int v = -1, e = -1, EsizeOccupied = -1;
     char lineBuf[MAXLINE + 1];
 
     memset(lineBuf, '\0', (MAXLINE + 1) * sizeof(char));
@@ -908,9 +930,7 @@ int gp_Write(graphP theGraph, char const *FileName, int Mode)
 
     RetVal = _WriteGraph(theGraph, &outputContainer, NULL, Mode);
 
-    if (outputContainer != NULL)
-        sf_Free(&outputContainer);
-    outputContainer = NULL;
+    sf_Free(&outputContainer);
 
     return RetVal;
 }
@@ -962,9 +982,7 @@ int gp_WriteToString(graphP theGraph, char **pOutputStr, int Mode)
     if ((*pOutputStr) == NULL || strlen(*pOutputStr) == 0)
         RetVal = NOTOK;
 
-    if (outputContainer != NULL)
-        sf_Free(&outputContainer);
-    outputContainer = NULL;
+    sf_Free(&outputContainer);
 
     return RetVal;
 }
@@ -1016,7 +1034,9 @@ int _WriteGraph(graphP theGraph, strOrFileP *outputContainer, char **pOutputStr,
         {
             if (sf_fputs(extraData, (*outputContainer)) == EOF)
                 RetVal = NOTOK;
+
             free(extraData);
+            extraData = NULL;
         }
     }
 
