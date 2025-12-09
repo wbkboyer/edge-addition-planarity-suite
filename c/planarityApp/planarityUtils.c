@@ -284,7 +284,9 @@ char *ReadTextFileIntoString(char const *infileName)
     FILE *infile = NULL;
     char *inputString = NULL;
 
-    if ((infile = fopen(infileName, "r")) == NULL)
+    if (infileName == NULL || strlen(infileName) == 0)
+        ErrorMessage("Unable to fopen() with NULL or empty infileName.\n");
+    else if ((infile = fopen(infileName, "r")) == NULL)
         ErrorMessage("fopen() failed.\n");
     else
     {
@@ -806,6 +808,7 @@ char *ConstructInputFilename(char const *infileName)
     if (GetNumCharsToReprInt(FILENAMEMAXLENGTH, &numCharsToReprFILENAMEMAXLENGTH) != OK)
     {
         ErrorMessage("Unable to determine number of characters required to represent FILENAMEMAXLENGTH.\n");
+
         return NULL;
     }
 
@@ -813,6 +816,7 @@ char *ConstructInputFilename(char const *infileName)
     if (fileNameFormat == NULL)
     {
         ErrorMessage("Unable to allocate memory for filename format string.\n");
+
         return NULL;
     }
 
@@ -828,7 +832,9 @@ char *ConstructInputFilename(char const *infileName)
             if (GetLineFromStdin(lineBuff, MAXLINE) != OK)
             {
                 ErrorMessage("Unable to read graph file name from stdin.\n");
+
                 Result = NOTOK;
+
                 break;
             }
 
@@ -845,6 +851,7 @@ char *ConstructInputFilename(char const *infileName)
                     if (strcat(theFileName, ".txt") == NULL)
                     {
                         ErrorMessage("Appending \".txt\" extension to theFileName using strcat() failed.\n");
+
                         Result = NOTOK;
                     }
                 }
@@ -858,11 +865,13 @@ char *ConstructInputFilename(char const *infileName)
         if (strlen(infileName) > FILENAMEMAXLENGTH)
         {
             ErrorMessage("Filename is too long.\n");
+
             Result = NOTOK;
         }
         else if (strlen(infileName) == 0)
         {
             ErrorMessage("Filename is empty.\n");
+
             Result = NOTOK;
         }
 
@@ -871,6 +880,7 @@ char *ConstructInputFilename(char const *infileName)
             if (strcpy(theFileName, infileName) == NULL)
             {
                 ErrorMessage("Copying infileName into theFileName using strcpy() failed.\n");
+
                 Result = NOTOK;
             }
         }
