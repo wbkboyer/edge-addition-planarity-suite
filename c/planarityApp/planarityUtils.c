@@ -794,9 +794,6 @@ char theFileName[FILENAMEMAXLENGTH + 1 + ALGORITHMNAMEMAXLENGTH + 1 + SUFFIXMAXL
  Returns NULL on error, or a non-NULL string on success.
  ****************************************************************************/
 
-// FIXME: Should I introduce some sort of pattern where functions requiring
-// user input should temporarily set quietMode to false, then restore the
-// original value at the end of the function?
 char *ConstructInputFilename(char const *infileName)
 {
     int Result = OK;
@@ -845,7 +842,7 @@ char *ConstructInputFilename(char const *infileName)
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
             if (strlen(lineBuff) == 0 || strlen(lineBuff) > FILENAMEMAXLENGTH ||
                 sscanf(lineBuff, fileNameFormat, theFileName) != 1)
-                ErrorMessage("Invalid input filename.\n"); // FIXME: for example, here, if quiet mode is enabled, the user will not see the ErrorMessage()?
+                ErrorMessage("Invalid input filename.\n");
             else
             {
                 if (strncmp(theFileName, "stdin", strlen("stdin")) != 0 && !strchr(theFileName, '.'))

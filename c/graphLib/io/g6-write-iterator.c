@@ -12,11 +12,16 @@ See the LICENSE.TXT file for licensing information.
 
 int allocateG6WriteIterator(G6WriteIteratorP *ppG6WriteIterator, graphP pGraph)
 {
-    int exitCode = OK;
-
     if (ppG6WriteIterator != NULL && (*ppG6WriteIterator) != NULL)
     {
         ErrorMessage("G6WriteIterator is not NULL and therefore can't be allocated.\n");
+        return NOTOK;
+    }
+
+    if (pGraph == NULL || gp_getN(pGraph) <= 0)
+    {
+        ErrorMessage("Must allocate and initialize graph with an order greater than 0 to use the G6WriteIterator.\n");
+
         return NOTOK;
     }
 
@@ -33,20 +38,9 @@ int allocateG6WriteIterator(G6WriteIteratorP *ppG6WriteIterator, graphP pGraph)
     (*ppG6WriteIterator)->g6Output = NULL;
     (*ppG6WriteIterator)->currGraphBuff = NULL;
     (*ppG6WriteIterator)->columnOffsets = NULL;
+    (*ppG6WriteIterator)->currGraph = pGraph;
 
-    if (pGraph == NULL || gp_getN(pGraph) <= 0)
-    {
-        ErrorMessage("[ERROR] Must allocate and initialize graph with an order greater than 0 to use the G6WriteIterator.\n");
-
-        if (freeG6WriteIterator(ppG6WriteIterator) != OK)
-            ErrorMessage("Unable to free the G6WriteIterator.\n");
-
-        exitCode = NOTOK;
-    }
-    else
-        (*ppG6WriteIterator)->currGraph = pGraph;
-
-    return exitCode;
+    return OK;
 }
 
 bool _isG6WriteIteratorAllocated(G6WriteIteratorP pG6WriteIterator)
@@ -278,11 +272,11 @@ int _encodeAdjMatAsG6(G6WriteIteratorP pG6WriteIterator)
 
     if (graphOrder > 62)
     {
-        int i, intermediate;
-        g6Encoding[0] = 126;
         // bytes 1 through 3 will be populated with the 18-bit representation of the graph order
-        intermediate = -1;
-        for (i = 0; i < 3; i++)
+        int intermediate = -1;
+        g6Encoding[0] = 126;
+
+        for (int i = 0; i < 3; i++)
         {
             intermediate = graphOrder >> (6 * i);
             g6Encoding[3 - i] = intermediate & 63;
@@ -339,22 +333,6 @@ int _encodeAdjMatAsG6(G6WriteIteratorP pG6WriteIterator)
         if (exitCode != OK)
         {
             ErrorMessage("Unable to fetch next edge in graph.\n");
-
-            // FIXME: I don't think I should be doing this here, as these belong
-            // to the G6WriteIterator and should only be cleaned up when the
-            // caller decides what to do in an error state, i.e to free the
-            // iterator using freeG6WriteIterator()... RandomGraphs() doesn't
-            // stop when there's an error from writeGraphUsingG6WriteIterator(),
-            // so this means for every subsequent iteration up to K graphs
-            // generated, _isG6WriteIteratorAllocated() will return NOTOK (so at
-            // least we're not trying to access data members, but there might be
-            // other places *not* appropriately safeguarded)
-
-            // free(columnOffsets);
-            // columnOffsets = NULL;
-
-            // free(g6Encoding);
-            // g6Encoding = NULL;
 
             return exitCode;
         }

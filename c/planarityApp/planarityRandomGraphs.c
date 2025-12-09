@@ -30,9 +30,6 @@ int RandomGraphs(char const *const commandString, int NumGraphs, int SizeOfGraph
 
     int K = 0, countUpdateFreq = 0, embedFlags = 0, MainStatistic = 0;
     int ReuseGraphs = TRUE;
-    int writeErrorReported_Random = FALSE, writeErrorReported_Embedded = FALSE,
-        writeErrorReported_AdjList = FALSE, writeErrorReported_Obstructed = FALSE,
-        writeErrorReported_Error = FALSE;
 
     char command = '\0', modifier = '\0';
 
@@ -81,6 +78,8 @@ int RandomGraphs(char const *const commandString, int NumGraphs, int SizeOfGraph
     origGraph = MakeGraph(SizeOfGraphs, command);
     if (theGraph == NULL || origGraph == NULL)
     {
+        ErrorMessage("Unable to allocate and initialize graph datastructures to contain randomly generated graphs.\n");
+
         gp_Free(&theGraph);
         gp_Free(&origGraph);
 
@@ -174,36 +173,30 @@ int RandomGraphs(char const *const commandString, int NumGraphs, int SizeOfGraph
         {
             if (pG6WriteIterator != NULL)
             {
-                writeResult = writeGraphUsingG6WriteIterator(pG6WriteIterator);
-                if (writeResult != OK)
+                if ((writeResult = writeGraphUsingG6WriteIterator(pG6WriteIterator)) != OK)
                 {
                     sprintf(messageContents, "Unable to write graph number %d using G6WriteIterator.\n", K);
                     ErrorMessage(messageContents);
-                    // TODO: should I be setting writeErrorReported_Random =
-                    // TRUE here? Where do these even get used? Should we be
-                    // breaking out of RandomGraphs() if there's an error with
-                    // the G6WriteIterator?? I just caught an issue where if
-                    // writeGraphUsingG6WriteIterator() fails because
-                    // _encodeAdjMatAsG6() failed, the columnOffsets and
-                    // g6Encoding would be free()'d, which would cause big
-                    // problems in subsequent loop iterations here! Or wait, I
-                    // guess I do check _isG6WriteIteratorAllocated(), so we'd
-                    // just return NOTOK for each iteration after without memory
-                    // access issues...
+
+                    Result = writeResult;
+
+                    break;
                 }
             }
-            if (tolower(OrigOut) == 'y' && tolower(OrigOutFormat) == 'a')
+            else if (tolower(OrigOut) == 'y' && tolower(OrigOutFormat) == 'a')
             {
                 sprintf(theFileName, "random%c%d.txt", FILE_DELIMITER, K % 10);
-                writeResult = gp_Write(theGraph, theFileName, WRITE_ADJLIST);
-                if (writeResult != OK && !writeErrorReported_Random)
+                if ((writeResult = gp_Write(theGraph, theFileName, WRITE_ADJLIST)) != OK)
                 {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
                     sprintf(messageContents, messageFormat, charsAvailForStr, theFileName);
 #pragma GCC diagnostic pop
                     ErrorMessage(messageContents);
-                    writeErrorReported_Random = TRUE;
+
+                    Result = writeResult;
+
+                    break;
                 }
             }
 
@@ -231,30 +224,32 @@ int RandomGraphs(char const *const commandString, int NumGraphs, int SizeOfGraph
                 if (tolower(EmbeddableOut) == 'y')
                 {
                     sprintf(theFileName, "embedded%c%d.txt", FILE_DELIMITER, K % 10);
-                    writeResult = gp_Write(theGraph, theFileName, WRITE_ADJMATRIX);
-                    if (writeResult != OK && !writeErrorReported_Embedded)
+
+                    if ((writeResult = gp_Write(theGraph, theFileName, WRITE_ADJMATRIX)) != OK)
                     {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
                         sprintf(messageContents, messageFormat, charsAvailForStr, theFileName);
 #pragma GCC diagnostic pop
                         ErrorMessage(messageContents);
-                        writeErrorReported_Embedded = TRUE;
+
+                        Result = writeResult;
                     }
                 }
 
                 if (tolower(AdjListsForEmbeddingsOut) == 'y')
                 {
                     sprintf(theFileName, "adjlist%c%d.txt", FILE_DELIMITER, K % 10);
-                    writeResult = gp_Write(theGraph, theFileName, WRITE_ADJLIST);
-                    if (writeResult != OK && !writeErrorReported_AdjList)
+
+                    if ((writeResult = gp_Write(theGraph, theFileName, WRITE_ADJLIST)) != OK)
                     {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
                         sprintf(messageContents, messageFormat, charsAvailForStr, theFileName);
 #pragma GCC diagnostic pop
                         ErrorMessage(messageContents);
-                        writeErrorReported_AdjList = TRUE;
+
+                        Result = writeResult;
                     }
                 }
             }
@@ -285,15 +280,16 @@ int RandomGraphs(char const *const commandString, int NumGraphs, int SizeOfGraph
                     if (tolower(ObstructedOut) == 'y')
                     {
                         sprintf(theFileName, "obstructed%c%d.txt", FILE_DELIMITER, K % 10);
-                        writeResult = gp_Write(theGraph, theFileName, WRITE_ADJMATRIX);
-                        if (writeResult != OK && !writeErrorReported_Obstructed)
+
+                        if ((writeResult = gp_Write(theGraph, theFileName, WRITE_ADJMATRIX)) != OK)
                         {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
                             sprintf(messageContents, messageFormat, charsAvailForStr, theFileName);
 #pragma GCC diagnostic pop
                             ErrorMessage(messageContents);
-                            writeErrorReported_Obstructed = TRUE;
+
+                            Result = writeResult;
                         }
                     }
                 }
@@ -303,17 +299,27 @@ int RandomGraphs(char const *const commandString, int NumGraphs, int SizeOfGraph
             if (Result != OK && Result != NONEMBEDDABLE)
             {
                 sprintf(theFileName, "error%c%d.txt", FILE_DELIMITER, K % 10);
-                writeResult = gp_Write(origGraph, theFileName, WRITE_ADJLIST);
-                if (writeResult != OK && !writeErrorReported_Error)
+                if ((writeResult = gp_Write(origGraph, theFileName, WRITE_ADJLIST)) != OK)
                 {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
                     sprintf(messageContents, messageFormat, charsAvailForStr, theFileName);
 #pragma GCC diagnostic pop
                     ErrorMessage(messageContents);
-                    writeErrorReported_Error = TRUE;
+
+                    Result = writeResult;
                 }
             }
+        }
+
+        // Terminate loop on error
+        if (Result != OK && Result != NONEMBEDDABLE)
+        {
+            ErrorMessage("\nError found\n");
+
+            Result = NOTOK;
+
+            break;
         }
 
         // Reinitialize or recreate graphs for next iteration
@@ -325,14 +331,6 @@ int RandomGraphs(char const *const commandString, int NumGraphs, int SizeOfGraph
             fprintf(stdout, "%d\r", K + 1);
             fflush(stdout);
         }
-
-        // Terminate loop on error
-        if (Result != OK && Result != NONEMBEDDABLE)
-        {
-            ErrorMessage("\nError found\n");
-            Result = NOTOK;
-            break;
-        }
     }
 
     // Stop the timer
@@ -342,10 +340,69 @@ int RandomGraphs(char const *const commandString, int NumGraphs, int SizeOfGraph
     fprintf(stdout, "%d\n", NumGraphs);
     fflush(stdout);
 
-    // TODO: I realize that setting Result to NOTOK here overrides the
-    // OK/NONEMBEDDABLE of the last graph which we embedded and checked embed
-    // result integrity... Should we be distinguishing between these NOTOK
-    // states?
+    sprintf(messageContents, "\nDone (%.3lf seconds).\n", platform_GetDuration(start, end));
+    Message(messageContents);
+
+    // Print some demographic results
+    if (Result == OK || Result == NONEMBEDDABLE)
+    {
+        Message("\nNo Errors Found.\n");
+        // Report statistics for planar or outerplanar embedding
+        if (embedFlags == EMBEDFLAGS_PLANAR || embedFlags == EMBEDFLAGS_OUTERPLANAR)
+        {
+            sprintf(messageContents, "Num Embedded=%d.\n", MainStatistic);
+            Message(messageContents);
+
+            for (K = 0; K < 5; K++)
+            {
+                // Outerplanarity does not produces minors C and D
+                if (embedFlags == EMBEDFLAGS_OUTERPLANAR && (K == 2 || K == 3))
+                    continue;
+
+                sprintf(messageContents, "Minor %c = %d\n", K + 'A', ObstructionMinorFreqs[K]);
+                Message(messageContents);
+            }
+
+            if (!(embedFlags & ~EMBEDFLAGS_PLANAR))
+            {
+                sprintf(messageContents, "\nNote: E1 are added to C, E2 are added to A, and E=E3+E4+K5 homeomorphs.\n");
+                Message(messageContents);
+
+                for (K = 5; K < NUM_MINORS; K++)
+                {
+                    sprintf(messageContents, "Minor E%d = %d\n", K - 4, ObstructionMinorFreqs[K]);
+                    Message(messageContents);
+                }
+            }
+        }
+
+        // Report statistics for graph drawing
+        else if (embedFlags == EMBEDFLAGS_DRAWPLANAR)
+        {
+            sprintf(messageContents, "Num Graphs Embedded and Drawn=%d.\n", MainStatistic);
+            Message(messageContents);
+        }
+
+        // Report statistics for subgraph homeomorphism algorithms
+        else if (embedFlags == EMBEDFLAGS_SEARCHFORK23)
+        {
+            sprintf(messageContents, "Of the generated graphs, %d did not contain a K_{2,3} homeomorph as a subgraph.\n", MainStatistic);
+            Message(messageContents);
+        }
+        else if (embedFlags == EMBEDFLAGS_SEARCHFORK33)
+        {
+            sprintf(messageContents, "Of the generated graphs, %d did not contain a K_{3,3} homeomorph as a subgraph.\n", MainStatistic);
+            Message(messageContents);
+        }
+        else if (embedFlags == EMBEDFLAGS_SEARCHFORK4)
+        {
+            sprintf(messageContents, "Of the generated graphs, %d did not contain a K_4 homeomorph as a subgraph.\n", MainStatistic);
+            Message(messageContents);
+        }
+    }
+
+    FlushConsole(stdout);
+
     if (pG6WriteIterator != NULL)
     {
         if (endG6WriteIteration(pG6WriteIterator) != OK)
@@ -364,68 +421,6 @@ int RandomGraphs(char const *const commandString, int NumGraphs, int SizeOfGraph
     // Free the graph structures created before the loop
     gp_Free(&theGraph);
     gp_Free(&origGraph);
-
-    // Print some demographic results
-    if (Result == OK || Result == NONEMBEDDABLE)
-        Message("\nNo Errors Found.");
-
-    sprintf(messageContents, "\nDone (%.3lf seconds).\n", platform_GetDuration(start, end));
-    Message(messageContents);
-
-    // Report statistics for planar or outerplanar embedding
-    if (embedFlags == EMBEDFLAGS_PLANAR || embedFlags == EMBEDFLAGS_OUTERPLANAR)
-    {
-        sprintf(messageContents, "Num Embedded=%d.\n", MainStatistic);
-        Message(messageContents);
-
-        for (K = 0; K < 5; K++)
-        {
-            // Outerplanarity does not produces minors C and D
-            if (embedFlags == EMBEDFLAGS_OUTERPLANAR && (K == 2 || K == 3))
-                continue;
-
-            sprintf(messageContents, "Minor %c = %d\n", K + 'A', ObstructionMinorFreqs[K]);
-            Message(messageContents);
-        }
-
-        if (!(embedFlags & ~EMBEDFLAGS_PLANAR))
-        {
-            sprintf(messageContents, "\nNote: E1 are added to C, E2 are added to A, and E=E3+E4+K5 homeomorphs.\n");
-            Message(messageContents);
-
-            for (K = 5; K < NUM_MINORS; K++)
-            {
-                sprintf(messageContents, "Minor E%d = %d\n", K - 4, ObstructionMinorFreqs[K]);
-                Message(messageContents);
-            }
-        }
-    }
-
-    // Report statistics for graph drawing
-    else if (embedFlags == EMBEDFLAGS_DRAWPLANAR)
-    {
-        sprintf(messageContents, "Num Graphs Embedded and Drawn=%d.\n", MainStatistic);
-        Message(messageContents);
-    }
-
-    // Report statistics for subgraph homeomorphism algorithms
-    else if (embedFlags == EMBEDFLAGS_SEARCHFORK23)
-    {
-        sprintf(messageContents, "Of the generated graphs, %d did not contain a K_{2,3} homeomorph as a subgraph.\n", MainStatistic);
-        Message(messageContents);
-    }
-    else if (embedFlags == EMBEDFLAGS_SEARCHFORK33)
-    {
-        sprintf(messageContents, "Of the generated graphs, %d did not contain a K_{3,3} homeomorph as a subgraph.\n", MainStatistic);
-        Message(messageContents);
-    }
-    else if (embedFlags == EMBEDFLAGS_SEARCHFORK4)
-    {
-        sprintf(messageContents, "Of the generated graphs, %d did not contain a K_4 homeomorph as a subgraph.\n", MainStatistic);
-        Message(messageContents);
-    }
-
-    FlushConsole(stdout);
 
     return Result == OK || Result == NONEMBEDDABLE ? OK : NOTOK;
 }
@@ -621,30 +616,21 @@ int RandomGraph(char const *const commandString, int extraEdges, int numVertices
 
     if (Result != OK && Result != NONEMBEDDABLE)
     {
-        // TODO: I think it's fair to bail out of RandomGraph() at this point if
-        // gp_Embed() failed, since we likely don't want to try to
-        // gp_SortVertices() if something went wrong with embedding?
         ErrorMessage("Failed to embed randomly generated graph\n");
+
         gp_Free(&theGraph);
         gp_Free(&origGraph);
+
         return NOTOK;
     }
 
     if (gp_SortVertices(theGraph) != OK)
     {
-        // TODO: Seems the only override is _DrawPlanar_SortVertices(), which
-        // only returns NOTOK if the base _SortVertices() returns NOTOK, which
-        // itself only returns NOTOK if the graph is not yet DFI ordered and
-        // gp_CreateDFSTree() fails... Should this error message refer to this
-        // fact, since there's no ErrorMessages emitted by graphDFSUtils.c
-        // functions?
-        // NOTE: Also I feel like it's fair to bail out at this point since
-        // there must be something wrong with the graph if gp_CreateDFSTree()
-        // failed, and we probably don't want to try to
-        // gp_TestEmbedResultIntegrity()?
         ErrorMessage("Unable to sort vertices of generated random graph\n");
+
         gp_Free(&theGraph);
         gp_Free(&origGraph);
+
         return NOTOK;
     }
 

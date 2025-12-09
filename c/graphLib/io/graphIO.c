@@ -55,8 +55,8 @@ char _GetVertexObstructionTypeChar(graphP theGraph, int v);
 int _ReadAdjMatrix(graphP theGraph, strOrFileP inputContainer)
 
 {
-    int N = -1;
-    int v, w, Flag;
+    int N = 0;
+    int v = NIL, w = NIL, Flag = NIL;
 
     if (sf_ValidateStrOrFile(inputContainer) != OK)
         return NOTOK;
@@ -129,8 +129,9 @@ int _ReadAdjMatrix(graphP theGraph, strOrFileP inputContainer)
 
 int _ReadAdjList(graphP theGraph, strOrFileP inputContainer)
 {
-    int N = -1;
-    int v = -1, W = -1, adjList = -1, e = -1, indexValue = -1, ErrorCode = OK;
+    int ErrorCode = OK;
+
+    int N = 0, v = NIL, W = NIL, adjList = NIL, e = NIL, indexValue = NIL;
     int zeroBased = FALSE;
 
     if (sf_ValidateStrOrFile(inputContainer) != OK)
@@ -333,8 +334,10 @@ int _ReadAdjList(graphP theGraph, strOrFileP inputContainer)
 
 int _ReadLEDAGraph(graphP theGraph, strOrFileP inputContainer)
 {
-    int N = -1;
-    int graphType = 0, M = -1, m = -1, u = -1, v = -1, ErrorCode = OK;
+    int ErrorCode = OK;
+
+    int graphType = 0;
+    int N = 0, M = 0, u = NIL, v = NIL;
     int zeroBasedOffset = gp_GetFirstVertex(theGraph) == 0 ? 1 : 0;
     char Line[MAXLINE + 1];
 
@@ -386,7 +389,7 @@ int _ReadLEDAGraph(graphP theGraph, strOrFileP inputContainer)
         return NOTOK;
 
     /* Read and add each edge, omitting loops and parallel edges */
-    for (m = 0; m < M; m++)
+    for (int m = 0; m < M; m++)
     {
         if (sf_ReadSkipWhitespace(inputContainer) != OK)
             return NOTOK;
@@ -437,10 +440,9 @@ int gp_Read(graphP theGraph, char const *FileName)
 
  Populates theGraph using the information stored in inputStr.
 
- The ownership of inputStr is transferred from the caller; it is
- assigned to a strOrFile container and ownership is transferred to
- the internal helper function _ReadGraph(), which then handles
- freeing this memory.
+ The caller owns the memory of inputStr, as the contents of inputStr are copied
+ into the inputContainer's internal strBuf, and therefore is responsible for
+ freeing the inputStr after gp_ReadFromString().
 
  Returns NOTOK for any error, or OK otherwise
  ********************************************************************/
@@ -449,32 +451,7 @@ int gp_ReadFromString(graphP theGraph, char *inputStr)
 {
     strOrFileP inputContainer = sf_New(inputStr, NULL, READTEXT);
     if (inputContainer == NULL)
-    {
-        // FIXME: Should this actually be moved *above* this check, seeing as we
-        // sb_ConcatStr() to copy inputStr to the internal strBuf of the
-        // strOrFile container??? I think this might constitute a memory leak
-        // that somehow wasn't caught when I did the AddressSanitizer checks for
-        // -test (which does inMemoryFlag of graph input??)
-
-        // Upon checking, it just so *happens* that the only two paths that call
-        // gp_ReadFromString(), runGraphTransformationTest() and
-        // runSpecificGraphTest(), clean up the inputString if it's not yet NULL!
-
-        // Do we want to actually *remove* the statement that ownership is
-        // transferred, and put it back on the caller to clean up the inputStr,
-        // since we can't set the pointer to NULL unless we have a
-        // pointer-pointer?
-
-        // NOTE: We free the inputStr in case of error allocating the strOrFile
-        // inputContainer, as the caller transfers ownership of the inputStr
-        if (inputStr != NULL)
-        {
-            free(inputStr);
-            inputStr = NULL;
-        }
-
         return NOTOK;
-    }
 
     return _ReadGraph(theGraph, inputContainer);
 }
@@ -607,7 +584,7 @@ int _ReadPostprocess(graphP theGraph, char *extraData)
 
 int _WriteAdjList(graphP theGraph, strOrFileP outputContainer)
 {
-    int v = -1, e = -1;
+    int v = NIL, e = NIL;
     int zeroBasedOffset = (theGraph->internalFlags & FLAGS_ZEROBASEDIO) ? gp_GetFirstVertex(theGraph) : 0;
     char numberStr[MAXCHARSFOR32BITINT + 1];
 
@@ -669,7 +646,7 @@ int _WriteAdjList(graphP theGraph, strOrFileP outputContainer)
 
 int _WriteAdjMatrix(graphP theGraph, strOrFileP outputContainer)
 {
-    int v = -1, e = -1, K = -1;
+    int v = NIL, e = NIL;
     char *Row = NULL;
     char numberStr[MAXCHARSFOR32BITINT + 1];
 
@@ -692,10 +669,11 @@ int _WriteAdjMatrix(graphP theGraph, strOrFileP outputContainer)
     // Construct the upper triangular matrix representation one row at a time
     for (v = gp_GetFirstVertex(theGraph); gp_VertexInRange(theGraph, v); v++)
     {
-        for (K = gp_GetFirstVertex(theGraph); K <= v; K++)
-            Row[K - gp_GetFirstVertex(theGraph)] = ' ';
-        for (K = v + 1; gp_VertexInRange(theGraph, K); K++)
-            Row[K - gp_GetFirstVertex(theGraph)] = '0';
+        for (int i = gp_GetFirstVertex(theGraph); i <= v; i++)
+            Row[i - gp_GetFirstVertex(theGraph)] = ' ';
+
+        for (int i = v + 1; gp_VertexInRange(theGraph, i); i++)
+            Row[i - gp_GetFirstVertex(theGraph)] = '0';
 
         e = gp_GetFirstArc(theGraph, v);
         while (gp_IsArc(e))
@@ -772,7 +750,7 @@ char _GetVertexObstructionTypeChar(graphP theGraph, int v)
 
 int _WriteDebugInfo(graphP theGraph, strOrFileP outputContainer)
 {
-    int v = -1, e = -1, EsizeOccupied = -1;
+    int v = NIL, e = NIL, EsizeOccupied = 0;
     char lineBuf[MAXLINE + 1];
 
     memset(lineBuf, '\0', (MAXLINE + 1) * sizeof(char));

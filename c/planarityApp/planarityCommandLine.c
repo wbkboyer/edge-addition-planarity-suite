@@ -509,8 +509,7 @@ int runSpecificGraphTest(char const *commandString, char const *infileName, int 
 
     if (Result == OK)
     {
-        // Perform the indicated algorithm on the graph in the input file or string. gp_ReadFromString()
-        // will handle freeing inputString.
+        // Perform the indicated algorithm on the graph in the input file or string.
         Result = SpecificGraph(commandString,
                                infileName, NULL, NULL,
                                inputString, &actualOutput, &actualOutput2);
@@ -629,8 +628,7 @@ int runGraphTransformationTest(char const *command, char const *infileName, int 
         int zeroBasedOutputFlag = 0;
         char *actualOutput = NULL;
         // We want to handle the test being run when we read from an input file or read from a string,
-        // so pass both infileName and inputString. Ownership of inputString is relinquished to TransformGraph(),
-        // and gp_ReadFromString() will handle freeing it.
+        // so pass both infileName and inputString.
         // We want to output to string, so we pass in the address of the actualOutput string.
         Result = TransformGraph(command, infileName, inputString, &zeroBasedOutputFlag, NULL, &actualOutput);
 

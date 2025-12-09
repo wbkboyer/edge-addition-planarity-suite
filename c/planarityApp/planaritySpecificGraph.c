@@ -64,7 +64,7 @@ int SpecificGraph(
         {
             if ((infileName = ConstructInputFilename(infileName)) == NULL)
             {
-                ErrorMessage("Unrecoverable error while trying to ConstructInputFilename().\n");
+                ErrorMessage("Error constructing input filename.\n");
 
                 Result = NOTOK;
             }
@@ -76,7 +76,7 @@ int SpecificGraph(
                 infileName = ConstructInputFilename(infileName);
                 if (infileName == NULL || strlen(infileName) == 0)
                 {
-                    ErrorMessage("Unrecoverable error while trying to ConstructInputFilename().\n");
+                    ErrorMessage("Error constructing input filename.\n");
 
                     Result = NOTOK;
 
