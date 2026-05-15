@@ -32,7 +32,10 @@ extern int _SetAllVisitedFlagsOnPath(graphP theGraph, int u, int v, int w, int x
 extern int _OrientExternalFacePath(graphP theGraph, int u, int v, int w, int x);
 
 extern int _ChooseTypeOfNonplanarityMinor(graphP theGraph, int v, int R);
-extern int _MarkLowestXYPath(graphP theGraph);
+// COMMENTED-OUT FOR DEFECT REPRODUCTION PURPOSES ONLY
+// extern int _MarkLowestXYPath(graphP theGraph);
+// ADDED FOR DEFECT REPRODUCTION PURPOSES ONLY
+extern int _MarkHighestXYPath(graphP theGraph);
 extern int _IsolateKuratowskiSubgraph(graphP theGraph, int v, int R);
 
 extern int _GetLeastAncestorConnection(graphP theGraph, int cutVertex);
@@ -74,6 +77,9 @@ int _FindExternalConnectionDescendantEndpoint(graphP theGraph, int ancestor,
                                               int cutVertex, int *pDescendant);
 int _SearchForMergeBlocker(graphP theGraph, K33SearchContext *context, int v, int *pMergeBlocker);
 int _FindK33WithMergeBlocker(graphP theGraph, K33SearchContext *context, int v, int mergeBlocker);
+
+// ADDED FOR DEFECT REPRODUCTION PURPOSES ONLY
+int _TestForLowXYPath(graphP theGraph);
 
 int _TestForZtoWPath(graphP theGraph);
 int _TestForStraddlingBridge(graphP theGraph, K33SearchContext *context, int u_max);
@@ -352,18 +358,23 @@ int _RunExtraK33Tests(graphP theGraph, K33SearchContext *context)
                 such that px!=x or py!=y, then a K_{3,3} homeomorph can be isolated
                 with Minor E4.  */
 
+    // ADDED FOR DEFECT REPRODUCTION PURPOSES ONLY
+    if (_TestForLowXYPath(theGraph) != OK)
+        return NOTOK;
     // Prior tests to choose the type of non-planarity minor selected the highest
     // x-y path, so we need to clear the visited flags of that path before marking
     // instead the x-y path with the lowest attachment points (those closest to W
     // along the external face).
-    if (_ClearAllVisitedFlagsInBicomp(theGraph, IC->r) != OK)
-        return NOTOK;
+    // COMMENTED-OUT FOR DEFECT REPRODUCTION PURPOSES ONLY
+    // if (_ClearAllVisitedFlagsInBicomp(theGraph, IC->r) != OK)
+    //     return NOTOK;
 
     // Now mark the lowest x-y path so that we can test whether _any_ x-y path
     // has points of attachment, px or py, below x or y, respectively (where
     // below means closer to W than x or y, respectively, along the external face).
-    if (_MarkLowestXYPath(theGraph) != TRUE)
-        return NOTOK;
+    // COMMENTED-OUT FOR DEFECT REPRODUCTION PURPOSES ONLY
+    // if (_MarkLowestXYPath(theGraph) != TRUE)
+    //     return NOTOK;
 
     // Now we test for E4 based on whether px!=x or py!=y. Note that the inequality
     // test is sufficient because not equal means attached lower by the time we are
@@ -900,6 +911,83 @@ int _FindK33WithMergeBlocker(graphP theGraph, K33SearchContext *context, int v, 
     /* Do the final clean-up to obtain the K_{3,3} */
 
     if (_DeleteUnmarkedVerticesAndEdges(theGraph) != OK)
+        return NOTOK;
+
+    return OK;
+}
+
+// ADDED FOR DEFECT REPRODUCTION PURPOSES ONLY
+/****************************************************************************
+ _TestForLowXYPath()
+ Is there an x-y path that does not include X?
+ If not, is there an x-y path that does not include Y?
+ If not, then we restore the original x-y path.
+ If such a low x-y path exists, then we adjust px or py accordingly,
+    and we make sure that X or Y (whichever is excluded) and its edges are
+    not marked visited.
+ This method uses the stack, though it is called with an empty stack currently,
+ it does happen to preserve any preceding stack content. This method pushes
+ at most one integer per edge incident to the bicomp root plus two integers
+ per vertex in the bicomp.
+ ****************************************************************************/
+
+int _TestForLowXYPath(graphP theGraph)
+{
+    isolatorContextP IC = theGraph->IC;
+    int result;
+    int stackBottom;
+
+    /* Clear the previously marked X-Y path */
+
+    // COMMENTED-OUT FOR DEFECT REPRODUCTION PURPOSES ONLY
+    // if (_ClearVisitedFlagsInBicomp(theGraph, IC->r) != OK)
+    // CHANGED FOR DEFECT REPRODUCTION PURPOSES ONLY
+    if (_ClearAllVisitedFlagsInBicomp(theGraph, IC->r) != OK)
+        return NOTOK;
+
+    /* Save the size of the stack before hiding any edges, so we will know
+       how many edges to restore */
+
+    stackBottom = sp_GetCurrentSize(theGraph->theStack);
+
+    /* Hide the internal edges of X */
+
+    if (_HideInternalEdges(theGraph, IC->x) != OK)
+        return NOTOK;
+
+    /* Try to find a low X-Y path that excludes X, then restore the
+        internal edges of X. */
+
+    result = _MarkHighestXYPath(theGraph);
+    if (_RestoreInternalEdges(theGraph, stackBottom) != OK)
+        return NOTOK;
+
+    /* If we found the low X-Y path, then return. */
+    // CHANGED FOR DEFECT REPRODUCTION PURPOSES ONLY
+    if (result == OK && IC->py != NIL)
+        return OK;
+
+    /* Hide the internal edges of Y */
+
+    if (_HideInternalEdges(theGraph, IC->y) != OK)
+        return NOTOK;
+
+    /* Try to find a low X-Y path that excludes Y, then restore the
+        internal edges of Y. */
+
+    result = _MarkHighestXYPath(theGraph);
+    if (_RestoreInternalEdges(theGraph, stackBottom) != OK)
+        return NOTOK;
+
+    /* If we found the low X-Y path, then return. */
+    // CHANGED FOR DEFECT REPRODUCTION PURPOSES ONLY
+    if (result == OK && IC->py != NIL)
+        return OK;
+
+    /* Restore the original X-Y path and return with no error
+            (the search failure is reflected by no change to px and py */
+    // CHANGED FOR DEFECT REPRODUCTION PURPOSES ONLY
+    if (_MarkHighestXYPath(theGraph) != OK || IC->py == NIL)
         return NOTOK;
 
     return OK;
