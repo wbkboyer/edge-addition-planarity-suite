@@ -1,0 +1,26 @@
+/*
+Copyright (c) 1997-2026, John M. Boyer
+All rights reserved.
+See the LICENSE.TXT file for licensing information.
+*/
+
+#ifndef TESTMAIN_PRIVATE_H
+#define TESTMAIN_PRIVATE_H
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+    extern int runDigraphTests(void);             /* test/graphLib/testDigraphs.c */
+    extern int runParallelEdgeTests(void);        /* test/graphLib/testParallelEdges.c */
+    extern int runFileIteratorsTests(void);       /* test/graphLib/io/testFileIterators.c */
+    extern int runSparse6Tests(void);             /* test/graphLib/io/testSparse6.c */
+    extern int runDigraph6Tests(void);            /* test/graphLib/io/testDigraph6.c */
+    extern int runGraphMLTests(void);             /* test/graphLib/io/testGraphML.c */
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* TESTMAIN_PRIVATE_H */

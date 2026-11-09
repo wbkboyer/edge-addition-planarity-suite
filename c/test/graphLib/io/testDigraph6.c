@@ -4,19 +4,24 @@ All rights reserved.
 See the LICENSE.TXT file for licensing information.
 */
 
-#include "../planarityApp/planarity.h"
+#include "../../../planarityApp/planarity.h"
 
-#include "../graphLib/io/d6-read-iterator.h"
-#include "../graphLib/io/d6-write-iterator.h"
+#include "../../../graphLib/io/d6-read-iterator.h"
+#include "../../../graphLib/io/d6-write-iterator.h"
 
-/* Called from planarityCommandLine.c */
-int testPetersenDigraph6(const char *);
-int testDigraph6Iterators(void);
+/* Imported functions */
+// FIXME: runTestAllGraphsTest() and runGraphTransformationTest() will have been moved
+/* Defined in planarityCommandLine.c */
+extern int runTestAllGraphsTest(char const *commandString, char const *infileName, char const *expectedValidationStr, int (*mutatorFunc)(graphP));
+extern int runGraphTransformationTest(char const *command, char const *infileName, int inputInMemFlag);
+
+/* Private function declarations (exported within system) */
+/* Called from testMain.c */
 int runDigraph6Tests(void);
 
-/* Defined in planarityCommandLine.c */
-int runTestAllGraphsTest(char const *commandString, char const *infileName, char const *expectedValidationStr, int (*mutatorFunc)(graphP));
-int runGraphTransformationTest(char const *command, char const *infileName, int inputInMemFlag);
+/* Called from testDigraphs.c */
+int testPetersenDigraph6(const char *);
+int testDigraph6Iterators(void);
 
 // An arc u -> v of a test graph when directed is TRUE, otherwise the
 // undirected edge {u, v}; vertices are numbered from 0, as in the format
@@ -38,6 +43,83 @@ static int runDigraph6WriteRefusalTest(graphP theGraph, char const *what);
 static int runDigraph6WriteTests(void);
 static int runDigraph6FileTest(char const *inFileName, char const *expectedFileName, int expectedNumGraphs);
 static int runHasParallelEdgesTests(void);
+
+/****************************************************************************
+ runDigraph6Tests()
+
+ Tests reading and writing digraph6, gp_HasParallelEdges(), the samples
+ that nauty wrote, the transformations to and from digraph6, and the
+ algorithms on all the oriented graphs of order 6 and all the digraphs of
+ order 5, which they must treat as the undirected graphs beneath them.
+ ****************************************************************************/
+
+ // FIXME: this method should actually be broken out so we have runDigraph6TestAllGraphsTests() and all the transformation tests should be moved into runDigraph6WriteTests()
+int runDigraph6Tests(void)
+{
+    int Result = OK;
+
+    gp_Message("Starting digraph6 tests");
+
+    if (runDigraph6ReadTests() != OK)
+        Result = NOTOK;
+    else if (runDigraph6InitRetryTests() != OK)
+        Result = NOTOK;
+    else if (runDigraph6WriteTests() != OK)
+        Result = NOTOK;
+    else if (runHasParallelEdgesTests() != OK)
+    {
+        gp_ErrorMessage("gp_HasParallelEdges() tests failed.");
+        Result = NOTOK;
+    }
+    // N4-all.d6 and N5-digraphs.d6 are every digraph of order 4 and of order
+    // 5 as nauty's directg wrote them, so with 2-cycles, which read as
+    // undirected edges; N6-oriented.d6 is every oriented graph of order 6
+    // (directg -o); N5-all.d6 is nauty's copyg -z of N5-all.g6
+    else if (runDigraph6FileTest("N4-all.d6", "N4-all.d6", 218) != OK ||
+             runDigraph6FileTest("N5-digraphs.d6", "N5-digraphs.d6", 9608) != OK ||
+             runDigraph6FileTest("N6-oriented.d6", "N6-oriented.d6", 21480) != OK ||
+             runDigraph6FileTest("N5-all.g6", "N5-all.d6", 34) != OK)
+        Result = NOTOK;
+    else if (runGraphTransformationTest("-d", "nauty_example.g6", TRUE) != OK ||
+             runGraphTransformationTest("-d", "nauty_example.g6", FALSE) != OK ||
+             runGraphTransformationTest("-d", "N5-all.g6", FALSE) != OK ||
+             runGraphTransformationTest("-d", "Petersen.digraph.txt", TRUE) != OK ||
+             runGraphTransformationTest("-d", "Petersen.digraph.0-based.txt", FALSE) != OK ||
+             runGraphTransformationTest("-d", "nauty_example.d6", TRUE) != OK ||
+             runGraphTransformationTest("-d", "nauty_example.d6", FALSE) != OK ||
+             runGraphTransformationTest("-a", "nauty_example.d6", TRUE) != OK ||
+             runGraphTransformationTest("-a", "nauty_example.d6", FALSE) != OK)
+        Result = NOTOK;
+    // The expected counts are those of the 156 graphs of order 6, each
+    // weighted by the number of its orientations in N6-oriented.d6
+    else if (runTestAllGraphsTest("-p", "N6-oriented.d6", "-p 21480 17212 4268 SUCCESS", NULL) != OK ||
+             runTestAllGraphsTest("-d", "N6-oriented.d6", "-d 21480 17212 4268 SUCCESS", NULL) != OK ||
+             runTestAllGraphsTest("-o", "N6-oriented.d6", "-o 21480 3724 17756 SUCCESS", NULL) != OK ||
+             runTestAllGraphsTest("-2", "N6-oriented.d6", "-2 21480 3952 17528 SUCCESS", NULL) != OK ||
+             runTestAllGraphsTest("-3", "N6-oriented.d6", "-3 21480 17860 3620 SUCCESS", NULL) != OK ||
+             runTestAllGraphsTest("-4", "N6-oriented.d6", "-4 21480 4662 16818 SUCCESS", NULL) != OK)
+    {
+        gp_ErrorMessage("Testing the algorithms on N6-oriented.d6 failed.");
+        Result = NOTOK;
+    }
+    // Likewise for the 34 graphs of order 5 weighted by the number of their
+    // digraphs in N5-digraphs.d6, whose 2-cycles read as undirected edges
+    else if (runTestAllGraphsTest("-p", "N5-digraphs.d6", "-p 9608 9026 582 SUCCESS", NULL) != OK ||
+             runTestAllGraphsTest("-d", "N5-digraphs.d6", "-d 9608 9026 582 SUCCESS", NULL) != OK ||
+             runTestAllGraphsTest("-o", "N5-digraphs.d6", "-o 9608 3211 6397 SUCCESS", NULL) != OK ||
+             runTestAllGraphsTest("-2", "N5-digraphs.d6", "-2 9608 3667 5941 SUCCESS", NULL) != OK ||
+             runTestAllGraphsTest("-3", "N5-digraphs.d6", "-3 9608 9608 0 SUCCESS", NULL) != OK ||
+             runTestAllGraphsTest("-4", "N5-digraphs.d6", "-4 9608 3560 6048 SUCCESS", NULL) != OK)
+    {
+        gp_ErrorMessage("Testing the algorithms on N5-digraphs.d6 failed.");
+        Result = NOTOK;
+    }
+
+    if (Result == OK)
+        gp_Message("Finished digraph6 tests.\n");
+
+    return Result;
+}
 
 /****************************************************************************
  copyDigraph6TestString()
@@ -921,82 +1003,6 @@ int testDigraph6Iterators(void)
         free(d6Str);
     if (numEdges != NULL)
         free(numEdges);
-
-    return Result;
-}
-
-/****************************************************************************
- runDigraph6Tests()
-
- Tests reading and writing digraph6, gp_HasParallelEdges(), the samples
- that nauty wrote, the transformations to and from digraph6, and the
- algorithms on all the oriented graphs of order 6 and all the digraphs of
- order 5, which they must treat as the undirected graphs beneath them.
- ****************************************************************************/
-
-int runDigraph6Tests(void)
-{
-    int Result = OK;
-
-    gp_Message("Starting digraph6 tests");
-
-    if (runDigraph6ReadTests() != OK)
-        Result = NOTOK;
-    else if (runDigraph6InitRetryTests() != OK)
-        Result = NOTOK;
-    else if (runDigraph6WriteTests() != OK)
-        Result = NOTOK;
-    else if (runHasParallelEdgesTests() != OK)
-    {
-        gp_ErrorMessage("gp_HasParallelEdges() tests failed.");
-        Result = NOTOK;
-    }
-    // N4-all.d6 and N5-digraphs.d6 are every digraph of order 4 and of order
-    // 5 as nauty's directg wrote them, so with 2-cycles, which read as
-    // undirected edges; N6-oriented.d6 is every oriented graph of order 6
-    // (directg -o); N5-all.d6 is nauty's copyg -z of N5-all.g6
-    else if (runDigraph6FileTest("N4-all.d6", "N4-all.d6", 218) != OK ||
-             runDigraph6FileTest("N5-digraphs.d6", "N5-digraphs.d6", 9608) != OK ||
-             runDigraph6FileTest("N6-oriented.d6", "N6-oriented.d6", 21480) != OK ||
-             runDigraph6FileTest("N5-all.g6", "N5-all.d6", 34) != OK)
-        Result = NOTOK;
-    else if (runGraphTransformationTest("-d", "nauty_example.g6", TRUE) != OK ||
-             runGraphTransformationTest("-d", "nauty_example.g6", FALSE) != OK ||
-             runGraphTransformationTest("-d", "N5-all.g6", FALSE) != OK ||
-             runGraphTransformationTest("-d", "Petersen.digraph.txt", TRUE) != OK ||
-             runGraphTransformationTest("-d", "Petersen.digraph.0-based.txt", FALSE) != OK ||
-             runGraphTransformationTest("-d", "nauty_example.d6", TRUE) != OK ||
-             runGraphTransformationTest("-d", "nauty_example.d6", FALSE) != OK ||
-             runGraphTransformationTest("-a", "nauty_example.d6", TRUE) != OK ||
-             runGraphTransformationTest("-a", "nauty_example.d6", FALSE) != OK)
-        Result = NOTOK;
-    // The expected counts are those of the 156 graphs of order 6, each
-    // weighted by the number of its orientations in N6-oriented.d6
-    else if (runTestAllGraphsTest("-p", "N6-oriented.d6", "-p 21480 17212 4268 SUCCESS", NULL) != OK ||
-             runTestAllGraphsTest("-d", "N6-oriented.d6", "-d 21480 17212 4268 SUCCESS", NULL) != OK ||
-             runTestAllGraphsTest("-o", "N6-oriented.d6", "-o 21480 3724 17756 SUCCESS", NULL) != OK ||
-             runTestAllGraphsTest("-2", "N6-oriented.d6", "-2 21480 3952 17528 SUCCESS", NULL) != OK ||
-             runTestAllGraphsTest("-3", "N6-oriented.d6", "-3 21480 17860 3620 SUCCESS", NULL) != OK ||
-             runTestAllGraphsTest("-4", "N6-oriented.d6", "-4 21480 4662 16818 SUCCESS", NULL) != OK)
-    {
-        gp_ErrorMessage("Testing the algorithms on N6-oriented.d6 failed.");
-        Result = NOTOK;
-    }
-    // Likewise for the 34 graphs of order 5 weighted by the number of their
-    // digraphs in N5-digraphs.d6, whose 2-cycles read as undirected edges
-    else if (runTestAllGraphsTest("-p", "N5-digraphs.d6", "-p 9608 9026 582 SUCCESS", NULL) != OK ||
-             runTestAllGraphsTest("-d", "N5-digraphs.d6", "-d 9608 9026 582 SUCCESS", NULL) != OK ||
-             runTestAllGraphsTest("-o", "N5-digraphs.d6", "-o 9608 3211 6397 SUCCESS", NULL) != OK ||
-             runTestAllGraphsTest("-2", "N5-digraphs.d6", "-2 9608 3667 5941 SUCCESS", NULL) != OK ||
-             runTestAllGraphsTest("-3", "N5-digraphs.d6", "-3 9608 9608 0 SUCCESS", NULL) != OK ||
-             runTestAllGraphsTest("-4", "N5-digraphs.d6", "-4 9608 3560 6048 SUCCESS", NULL) != OK)
-    {
-        gp_ErrorMessage("Testing the algorithms on N5-digraphs.d6 failed.");
-        Result = NOTOK;
-    }
-
-    if (Result == OK)
-        gp_Message("Finished digraph6 tests.\n");
 
     return Result;
 }
