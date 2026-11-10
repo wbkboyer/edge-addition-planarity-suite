@@ -10,10 +10,8 @@ See the LICENSE.TXT file for licensing information.
 #include "../../../graphLib/io/d6-write-iterator.h"
 
 /* Imported functions */
-// FIXME: runTestAllGraphsTest() and runGraphTransformationTest() will have been moved
-/* Defined in planarityCommandLine.c */
-extern int runTestAllGraphsTest(char const *commandString, char const *infileName, char const *expectedValidationStr, int (*mutatorFunc)(graphP));
-extern int runGraphTransformationTest(char const *command, char const *infileName, int inputInMemFlag);
+extern int runTestAllGraphsTest(char const *commandString, char const *infileName, char const *expectedValidationStr, int (*mutatorFunc)(graphP)); /* test/graphLib/testAllGraphs.c */
+extern int runGraphTransformationTest(char const *command, char const *infileName, int inputInMemFlag);                                            /* test/graphLib/io/testGraphTransformations.c */
 
 /* Private function declarations (exported within system) */
 /* Called from testMain.c */
@@ -53,7 +51,7 @@ static int runHasParallelEdgesTests(void);
  order 5, which they must treat as the undirected graphs beneath them.
  ****************************************************************************/
 
- // FIXME: this method should actually be broken out so we have runDigraph6TestAllGraphsTests() and all the transformation tests should be moved into runDigraph6WriteTests()
+// FIXME: this method should actually be broken out so we have runDigraph6TestAllGraphsTests() and all the transformation tests should be moved into runDigraph6WriteTests()
 int runDigraph6Tests(void)
 {
     int Result = OK;

@@ -12,10 +12,8 @@ See the LICENSE.TXT file for licensing information.
 #include "../../../graphLib/io/s6-write-iterator.h"
 
 /* Imported functions */
-// FIXME: runTestAllGraphsTest() and runGraphTransformationTest() will have been moved
-/* Defined in planarityCommandLine.c */
-extern int runTestAllGraphsTest(char const *commandString, char const *infileName, char const *expectedValidationStr, int (*mutatorFunc)(graphP));
-extern int runGraphTransformationTest(char const *command, char const *infileName, int inputInMemFlag);
+extern int runTestAllGraphsTest(char const *commandString, char const *infileName, char const *expectedValidationStr, int (*mutatorFunc)(graphP)); /* test/graphLib/testAllGraphs.c */
+extern int runGraphTransformationTest(char const *command, char const *infileName, int inputInMemFlag);                                            /* test/graphLib/io/testGraphTransformations.c */
 
 /* Library-private function the edge storage tests call directly */
 extern int _CompactEdgeStorage(graphP theGraph);
@@ -2999,6 +2997,8 @@ int runSparse6TestAllGraphsTests(void)
 {
     int retVal = OK;
 
+    gp_Message("Starting Sparse6 Test All Graphs Tests.\n");
+
     // The graphs of n8.mALL.g6, in incremental sparse6 format, must give the
     // results runTestAllGraphsTests() gets from graph6, which exercises the
     // sparse6 read iterator on every algorithm, including planar graph
@@ -3040,6 +3040,11 @@ int runSparse6TestAllGraphsTests(void)
         gp_ErrorMessage("Planarity test on all graphs in sparse6 failed.");
         retVal = NOTOK;
     }
+
+    if (retVal == OK)
+        gp_Message("Finished Sparse6 Test All Graphs Tests.\n");
+    else
+        gp_ErrorMessage("A Sparse6 Test All Graphs test has failed.");
 
     return retVal;
 }

@@ -12,6 +12,8 @@ extern "C"
 {
 #endif
 
+    extern int runGraphTransformationTests(void); /* test/graphLib/io/testGraphTransformations.c */
+    extern int runTestAllGraphsTests(void);       /* test/graphLib/testAllGraphs.c */
     extern int runDigraphTests(void);             /* test/graphLib/testDigraphs.c */
     extern int runParallelEdgeTests(void);        /* test/graphLib/testParallelEdges.c */
     extern int runFileIteratorsTests(void);       /* test/graphLib/io/testFileIterators.c */

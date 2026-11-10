@@ -108,12 +108,14 @@ planarity_SOURCES = \
 	c/test/testMain.h \
 	c/test/testMain.private.h \
 	c/test/testMain.c \
+	c/test/graphLib/testAllGraphs.c \
 	c/test/graphLib/testDigraphs.c \
 	c/test/graphLib/testParallelEdges.c \
 	c/test/graphLib/extensionSystem/testExtensionCopy.c \
 	c/test/graphLib/io/testIOErrors.c \
 	c/test/graphLib/io/testFileIterators.c \
 	c/test/graphLib/io/testSparse6.c \
+	c/test/graphLib/io/testGraphTransformations.c \
 	c/test/graphLib/io/testDigraph6.c \
 	c/test/graphLib/io/testGraphML.c
 

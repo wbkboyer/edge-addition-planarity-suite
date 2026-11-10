@@ -19,8 +19,6 @@ See the LICENSE.TXT file for licensing information.
 // FIXME: need to move this into the new location from planarityCommandLine.c
 extern int runSpecificGraphTests(void);
 extern int runRandomGraphsTests(void);
-extern int runGraphTransformationTests(void);
-extern int runTestAllGraphsTests(void);
 
 extern int runFaceListTest(void);
 extern int runAddInsertEdgeTests(void);
