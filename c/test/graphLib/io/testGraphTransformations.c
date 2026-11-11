@@ -11,6 +11,7 @@ See the LICENSE.TXT file for licensing information.
 int runGraphTransformationTests(void);
 
 /* Private functions */
+/* Called from testDigraph6.c and testSparse6.c */
 int runGraphTransformationTest(char const *command, char const *infileName, int inputInMemFlag);
 
 int runGraphTransformationTests(void)

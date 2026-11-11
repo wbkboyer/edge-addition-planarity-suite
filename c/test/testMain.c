@@ -17,7 +17,6 @@ See the LICENSE.TXT file for licensing information.
 #include "testMain.private.h"
 
 // FIXME: need to move this into the new location from planarityCommandLine.c
-extern int runSpecificGraphTests(void);
 extern int runRandomGraphsTests(void);
 
 extern int runFaceListTest(void);
@@ -26,7 +25,6 @@ extern int runAddInsertEdgeTests(void);
 extern int runHideRestoreTests(void);
 extern int runIdentifyContractTests(void);
 
-extern int runDrawPlanarNonplanarWriteTest(void);
 extern int runReadWithExtensionAtEofTest(void);
 extern int runHighByteRoundTripTest(void);
 extern int runCapacityLimitTests(void);

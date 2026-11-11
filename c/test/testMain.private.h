@@ -12,6 +12,7 @@ extern "C"
 {
 #endif
 
+    extern int runSpecificGraphTests(void);       /* test/graphLib/testSpecificGraphs.c */
     extern int runGraphTransformationTests(void); /* test/graphLib/io/testGraphTransformations.c */
     extern int runTestAllGraphsTests(void);       /* test/graphLib/testAllGraphs.c */
     extern int runDigraphTests(void);             /* test/graphLib/testDigraphs.c */

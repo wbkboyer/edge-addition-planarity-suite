@@ -9,6 +9,7 @@ See the LICENSE.TXT file for licensing information.
 #include "../../graphLib/graphLib.h"
 
 /* Imported functions */
+// FIXME: These likely should not be called from runDigraphTests(), just call them from runDigraph6Tests()
 extern int testPetersenDigraph6(const char *);
 extern int testDigraph6Iterators(void);
 
@@ -16,10 +17,10 @@ extern int testDigraph6Iterators(void);
 int runDigraphTests(void);
 
 /* Private functions */
-int _CheckUndirectedDFSEdgeTypes(graphP theGraph);
-int testDirectedDFS(void);
-int testPetersenDigraph(const char *);
-int testDigraphTranspose(
+static int _CheckUndirectedDFSEdgeTypes(graphP theGraph);
+static int testDirectedDFS(void);
+static int testPetersenDigraph(const char *);
+static int testDigraphTranspose(
     char const *inputFileName,
     char const *expectedOutputFileName,
     int preservedEdgeSource,

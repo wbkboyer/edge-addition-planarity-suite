@@ -18,6 +18,7 @@ extern int runGraphTransformationTest(char const *command, char const *infileNam
 int runDigraph6Tests(void);
 
 /* Called from testDigraphs.c */
+// FIXME: Should these actually be made private and therefore static, since they shouldn't actually be called by testDigraphs.c
 int testPetersenDigraph6(const char *);
 int testDigraph6Iterators(void);
 
@@ -52,6 +53,7 @@ static int runHasParallelEdgesTests(void);
  ****************************************************************************/
 
 // FIXME: this method should actually be broken out so we have runDigraph6TestAllGraphsTests() and all the transformation tests should be moved into runDigraph6WriteTests()
+// FIXME: We should call testPetersenDigraph6() and testDigraphIterators() in this suite rather than from runDigraphTests()
 int runDigraph6Tests(void)
 {
     int Result = OK;
